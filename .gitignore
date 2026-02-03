@@ -1,0 +1,78 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# Project specific
+k2_discovered_controls.json
+k2_map.json
+*.log
+
+# Secrets and credentials (NEVER commit these)
+.env
+.env.*
+*.env
+secrets.json
+credentials.json
+*_credentials.json
+*_secrets.json
+*.pem
+*.key
+
+# Spotify tokens and API keys (sensitive)
+k2deck/config/spotify_token.json
+k2deck/config/*_token.json
+k2deck/config/local*.json
+
+# Personal config overrides (keep default.json, ignore local overrides)
+k2deck/config/user*.json
+k2deck/config/my_*.json
+
+# Claude/AI context (local development only)
+.claude/
+CLAUDE.local.md
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Windows shortcuts
+*.lnk

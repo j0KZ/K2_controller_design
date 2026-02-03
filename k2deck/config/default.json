@@ -1,0 +1,218 @@
+{
+  "profile_name": "default",
+  "midi_channel": 16,
+  "midi_device": "XONE:K2",
+
+  "led_color_offsets": {
+    "red": 0,
+    "amber": 36,
+    "green": 72
+  },
+
+  "throttle": {
+    "cc_max_hz": 30,
+    "cc_volume_max_hz": 20
+  },
+
+  "mappings": {
+    "note_on": {
+      "_comment": "=== ROW A (top buttons): 36-39 ===",
+      "36": {
+        "name": "Spotify Play/Pause",
+        "action": "media_key",
+        "keys": ["media_play_pause"],
+        "led": { "color": "green", "mode": "toggle", "off_color": "amber" }
+      },
+      "37": {
+        "name": "Discord Mute",
+        "action": "hotkey",
+        "keys": ["ctrl", "shift", "m"],
+        "led": { "color": "red", "mode": "toggle", "off_color": "green" }
+      },
+      "38": {
+        "name": "VS Code Run/Debug",
+        "action": "hotkey",
+        "keys": ["f5"],
+        "led": { "color": "green", "mode": "flash", "flash_count": 3 }
+      },
+      "39": {
+        "name": "Brave Refresh",
+        "action": "hotkey",
+        "keys": ["f5"]
+      },
+
+      "_comment2": "=== ROW B: 32-35 ===",
+      "32": {
+        "name": "Spotify Next",
+        "action": "media_key",
+        "keys": ["media_next"]
+      },
+      "33": {
+        "name": "Discord Deafen",
+        "action": "hotkey",
+        "keys": ["ctrl", "shift", "d"],
+        "led": { "color": "red", "mode": "toggle" }
+      },
+      "34": {
+        "name": "VS Code Terminal",
+        "action": "hotkey",
+        "keys": ["ctrl", "`"],
+        "led": { "color": "green", "mode": "toggle" }
+      },
+      "35": {
+        "name": "Brave Close Tab",
+        "action": "hotkey",
+        "keys": ["ctrl", "w"]
+      },
+
+      "_comment3": "=== ROW C: 28-31 ===",
+      "28": {
+        "name": "Spotify Prev",
+        "action": "media_key",
+        "keys": ["media_previous"]
+      },
+      "29": {
+        "name": "Discord Screenshare",
+        "action": "noop",
+        "_note": "Phase 2"
+      },
+      "30": {
+        "name": "VS Code Sidebar",
+        "action": "hotkey",
+        "keys": ["ctrl", "b"]
+      },
+      "31": {
+        "name": "Brave DevTools",
+        "action": "hotkey",
+        "keys": ["f12"],
+        "led": { "color": "amber", "mode": "toggle" }
+      },
+
+      "_comment4": "=== ROW D (bottom): 24-27 ===",
+      "24": {
+        "name": "Spotify Shuffle",
+        "action": "noop",
+        "_note": "Phase 2: requires Spotify API"
+      },
+      "25": {
+        "name": "Discord DnD",
+        "action": "noop",
+        "_note": "Phase 2"
+      },
+      "26": {
+        "name": "VS Code Format",
+        "action": "hotkey",
+        "keys": ["shift", "alt", "f"]
+      },
+      "27": {
+        "name": "Brave Bookmark",
+        "action": "hotkey",
+        "keys": ["ctrl", "d"]
+      },
+
+      "_comment5": "=== TOP ENCODER PUSHES: 52-55 ===",
+      "52": {
+        "name": "Spotify Like",
+        "action": "noop",
+        "_note": "Phase 2: requires Spotify API"
+      },
+      "53": {
+        "name": "Discord Mute (Enc)",
+        "action": "hotkey",
+        "keys": ["ctrl", "shift", "m"]
+      },
+      "54": {
+        "name": "VS Code Command Palette",
+        "action": "hotkey",
+        "keys": ["ctrl", "shift", "p"]
+      },
+      "55": {
+        "name": "Brave New Tab",
+        "action": "hotkey",
+        "keys": ["ctrl", "t"]
+      },
+
+      "_comment6": "=== BOTTOM ENCODERS: 12-13, 15 ===",
+      "12": {
+        "name": "Bottom Enc 1 Push",
+        "action": "noop"
+      },
+      "13": {
+        "name": "Bottom Enc 2 Push",
+        "action": "noop"
+      },
+      "15": {
+        "name": "Layer/Exit Button",
+        "action": "noop"
+      }
+    },
+
+    "cc_absolute": {
+      "_comment": "=== FADERS: CC 16-19 ===",
+      "16": {
+        "name": "Spotify Volume",
+        "action": "volume",
+        "target_process": "Spotify.exe"
+      },
+      "17": {
+        "name": "Discord Volume",
+        "action": "volume",
+        "target_process": "Discord.exe"
+      },
+      "18": {
+        "name": "VS Code Volume",
+        "action": "volume",
+        "target_process": "Code.exe"
+      },
+      "19": {
+        "name": "Master Volume",
+        "action": "volume",
+        "target_process": "__master__"
+      }
+    },
+
+    "cc_relative": {
+      "_comment": "=== TOP ENCODERS (rotation): CC 0-3 ===",
+      "0": {
+        "name": "Spotify Seek",
+        "action": "noop",
+        "_note": "Phase 2: requires Spotify API"
+      },
+      "1": {
+        "name": "Discord Scroll",
+        "action": "mouse_scroll",
+        "step": 3
+      },
+      "2": {
+        "name": "VS Code Scroll",
+        "action": "mouse_scroll",
+        "step": 5
+      },
+      "3": {
+        "name": "Brave Tab Switch",
+        "action": "hotkey_relative",
+        "cw": ["ctrl", "tab"],
+        "ccw": ["ctrl", "shift", "tab"]
+      },
+
+      "_comment2": "=== BOTTOM ENCODERS (rotation): CC 20-21 ===",
+      "20": {
+        "name": "Bottom Enc 1 Rotate",
+        "action": "noop"
+      },
+      "21": {
+        "name": "Bottom Enc 2 Rotate",
+        "action": "noop"
+      }
+    }
+  },
+
+  "led_defaults": {
+    "on_start": [
+      { "note": 36, "color": "amber" },
+      { "note": 37, "color": "green" }
+    ],
+    "on_connect": "all_off",
+    "startup_animation": true
+  }
+}
