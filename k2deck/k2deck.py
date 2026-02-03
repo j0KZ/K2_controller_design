@@ -153,12 +153,20 @@ class K2DeckApp:
                 self._fader_debouncer.debounce(
                     f"cc_{event.cc}",
                     event.value,
-                    lambda val: self._apply_fader_value(event.cc, event.channel, val),
+                    lambda val, cc=event.cc, ch=event.channel: self._apply_fader_value(cc, ch, val),
                 )
 
-            # Still use throttle for immediate responsiveness
-            if not self._throttle.should_process(f"cc_{event.cc}"):
-                return
+                # ALWAYS let extreme values (0 and 127) through immediately
+                # This ensures min/max volume is applied even when moving fast
+                is_extreme = event.value in (0, 127)
+                if is_extreme:
+                    pass  # Skip throttle check, always process
+                elif not self._throttle.should_process(f"cc_{event.cc}"):
+                    return
+            else:
+                # Non-fader CC (encoders, etc.) - apply normal throttle
+                if not self._throttle.should_process(f"cc_{event.cc}"):
+                    return
 
         # Resolve to action
         action, mapping_config = self._mapping_engine.resolve(event)
@@ -197,7 +205,7 @@ class K2DeckApp:
         # Resolve and execute
         action, mapping_config = self._mapping_engine.resolve(final_event)
         if action:
-            logger.debug("Applying final fader value: cc_%d = %d", cc, value)
+            logger.info("Applying final fader value: cc_%d = %d", cc, value)
             self._executor.submit(self._execute_action, action, final_event, mapping_config)
 
     def _execute_action(
