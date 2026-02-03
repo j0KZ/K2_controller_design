@@ -26,7 +26,7 @@
       "37": {
         "name": "Discord Mute",
         "action": "hotkey",
-        "keys": ["ctrl", "shift", "m"],
+        "keys": ["ctrl", "alt", "m"],
         "led": { "color": "red", "mode": "toggle", "off_color": "green" }
       },
       "38": {
@@ -50,7 +50,7 @@
       "33": {
         "name": "Discord Deafen",
         "action": "hotkey",
-        "keys": ["ctrl", "shift", "d"],
+        "keys": ["ctrl", "alt", "d"],
         "led": { "color": "red", "mode": "toggle" }
       },
       "34": {
@@ -72,9 +72,18 @@
         "keys": ["media_previous"]
       },
       "29": {
-        "name": "Discord Screenshare",
-        "action": "noop",
-        "_note": "Phase 2"
+        "name": "Discord+Wispr Toggle",
+        "action": "multi_toggle",
+        "on_sequence": [
+          ["ctrl", "alt", "m"],
+          ["ctrl", "win", "space"]
+        ],
+        "off_sequence": [
+          ["ctrl", "win"],
+          ["ctrl", "alt", "m"]
+        ],
+        "delay_ms": 100,
+        "led": { "color": "red", "mode": "toggle", "off_color": "green" }
       },
       "30": {
         "name": "VS Code Sidebar",
@@ -119,7 +128,7 @@
       "53": {
         "name": "Discord Mute (Enc)",
         "action": "hotkey",
-        "keys": ["ctrl", "shift", "m"]
+        "keys": ["ctrl", "alt", "m"]
       },
       "54": {
         "name": "VS Code Command Palette",
@@ -174,25 +183,29 @@
     "cc_relative": {
       "_comment": "=== TOP ENCODERS (rotation): CC 0-3 ===",
       "0": {
-        "name": "Spotify Seek",
-        "action": "noop",
-        "_note": "Phase 2: requires Spotify API"
+        "name": "Spotify Prev/Next",
+        "action": "hotkey_relative",
+        "cw": ["media_next"],
+        "ccw": ["media_previous"]
       },
       "1": {
         "name": "Discord Scroll",
         "action": "mouse_scroll",
-        "step": 3
+        "step": 3,
+        "target_app": "Discord.exe"
       },
       "2": {
         "name": "VS Code Scroll",
         "action": "mouse_scroll",
-        "step": 5
+        "step": 5,
+        "target_app": "Code.exe"
       },
       "3": {
         "name": "Brave Tab Switch",
         "action": "hotkey_relative",
         "cw": ["ctrl", "tab"],
-        "ccw": ["ctrl", "shift", "tab"]
+        "ccw": ["ctrl", "shift", "tab"],
+        "target_app": "brave.exe"
       },
 
       "_comment2": "=== BOTTOM ENCODERS (rotation): CC 20-21 ===",

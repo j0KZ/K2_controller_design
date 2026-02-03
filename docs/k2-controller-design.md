@@ -71,43 +71,46 @@ Para cambiar color: enviar Note On en la nota del nuevo color. No hace falta apa
 
 ## Diseño por Columnas: 1 App = 1 Columna
 
+Cada encoder focaliza su app automáticamente antes de ejecutar la acción.
+
 ```
          COL 1          COL 2          COL 3          COL 4
          SPOTIFY        DISCORD        VS CODE        BRAVE/SYSTEM
          ───────        ───────        ───────        ────────────
 
-ENC      Seek ←→ [1]    Scroll ←→ [2] Scroll ←→ [2]  Switch tabs [3]
-ENC push Like track [1]  Mute mic      Cmd Palette     New tab
+ENC      ⏮⏭ Prev/Next   Scroll [+F]   Scroll [+F]    Switch tabs [+F]
+ENC push Like [API]     Mute mic       Cmd Palette     New tab
 
-K row1   EQ Bass         Input vol [4]  Font size       Zoom level
-K row2   EQ Mid          Output vol     Scroll speed    —
-K row3   EQ Treble       — (reserva)    — (reserva)     — (reserva)
+K row1   — (reserva)    — (reserva)    — (reserva)     — (reserva)
+K row2   — (reserva)    — (reserva)    — (reserva)     — (reserva)
+K row3   — (reserva)    — (reserva)    — (reserva)     — (reserva)
 
-BTN A    ▶ Play/Pause    🎤 Mute mic    ▶ Run/Debug     🔄 Refresh
-BTN B    ⏭ Next          🔇 Deafen      ⌨ Terminal      ✕ Close tab
-BTN C    ⏮ Prev          📺 Screenshare 📁 Sidebar       🔧 DevTools
+BTN A    ▶ Play/Pause   🎤 Mute mic    ▶ Run/Debug     🔄 Refresh
+BTN B    ⏭ Next         🔇 Deafen      ⌨ Terminal      ✕ Close tab
+BTN C    ⏮ Prev         🎙 Wispr+Mute  📁 Sidebar       🔧 DevTools
 
-FADER    🔊 App vol      🔊 App vol     🔊 App vol      🔊 Master vol
+FADER    🔊 App vol     🔊 App vol     — (sin uso)     — (sin uso)
 
-BTN D    🔀 Shuffle      🔕 DnD toggle  📝 Format doc   ⭐ Bookmark
+BTN D    🔀 Shuffle*    🔕 DnD*        📝 Format doc   ⭐ Bookmark
+
+[+F] = Focus app automático antes de la acción
+*    = Requiere API (Fase 2)
 ```
 
 ### Notas de diseño
 
 ```
-[1] Seek y Like requieren Spotify API (spotipy) → Fase 2.
-    Fallback Fase 1: Seek = media keys (impreciso). Like = no disponible.
+[1] Encoders con target_app focalizan la ventana antes de actuar.
+    Esto permite que cada columna controle su app específica.
 
-[2] Scroll en Discord/VS Code requiere MOUSE SCROLL simulation,
-    no keyboard hotkeys. Usar pynput mouse.scroll().
-    Action type necesario: "mouse_scroll"
+[2] Wispr+Mute (BTN C2) es un multi_toggle que:
+    - Press 1: Mute Discord → Start Wispr Flow
+    - Press 2: Stop Wispr → Unmute Discord
 
-[3] Switch tabs: Ctrl+Tab (CW) / Ctrl+Shift+Tab (CCW).
-    Action type: "hotkey_relative"
+[3] Los 12 knobs (K row 1-3) están disponibles para futura expansión.
 
-[4] Discord input/output vol son controles del sistema operativo,
-    no de Discord. Usan pycaw sobre Discord.exe.
-    Per-user volume NO es posible sin Discord API/bot.
+[4] Faders 3 y 4 eliminados (VS Code vol y Master vol eran inútiles).
+    Se pueden reasignar a otras funciones.
 ```
 
 ### LED Feedback Plan
@@ -236,20 +239,38 @@ k2deck/
 
 ## Action Types Registry
 
-Todas las action types que el mapping engine debe soportar:
+Todas las action types que el mapping engine soporta:
 
 | Action type | Clase | Input | Descripción |
 |---|---|---|---|
 | `hotkey` | HotkeyAction | Note On | Simula combo de teclado |
-| `hotkey_relative` | HotkeyAction | CC relative | CW→hotkey A, CCW→hotkey B |
-| `mouse_scroll` | MouseScrollAction | CC relative | CW→scroll up, CCW→scroll down |
+| `hotkey_relative` | HotkeyRelativeAction | CC relative | CW→hotkey A, CCW→hotkey B. Soporta `target_app` |
+| `mouse_scroll` | MouseScrollAction | CC relative | Scroll con `invert`, `step`, `target_app` |
 | `volume` | VolumeAction | CC absolute | Fader/knob → volumen de app |
 | `media_key` | HotkeyAction | Note On | Media keys (play, next, prev, mute) |
+| `multi` | MultiAction | Note On | Ejecuta secuencia de hotkeys |
+| `multi_toggle` | MultiToggleAction | Note On | Alterna entre dos secuencias (ej: mute+wispr) |
+| `focus` | FocusAction | Note On | Focaliza ventana de app |
+| `launch` | LaunchAction | Note On | Abre o focaliza app |
 | `spotify_*` | SpotifyAction | Note On / CC | API actions [Fase 2] |
-| `launch` | WindowAction | Note On | Abrir/focus app [Fase 2] |
 | `system` | SystemAction | Note On | Lock, screenshot, etc. |
-| `multi` | MultiAction | any | Ejecuta lista de actions en secuencia |
 | `noop` | — | any | Mapeo explícitamente vacío (suppress log) |
+
+### Opciones comunes
+
+**target_app**: Focaliza la app antes de ejecutar la acción. Ej: `"target_app": "Discord.exe"`
+
+**multi_toggle example**:
+```json
+{
+  "name": "Discord+Wispr Toggle",
+  "action": "multi_toggle",
+  "on_sequence": [["ctrl", "alt", "m"], ["ctrl", "win", "space"]],
+  "off_sequence": [["ctrl", "win"], ["ctrl", "alt", "m"]],
+  "delay_ms": 100,
+  "led": { "color": "red", "mode": "toggle", "off_color": "green" }
+}
+```
 
 ---
 

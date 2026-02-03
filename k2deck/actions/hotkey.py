@@ -1,6 +1,7 @@
 """Hotkey action - Keyboard simulation using pynput."""
 
 import logging
+import time
 from typing import TYPE_CHECKING
 
 from pynput.keyboard import Controller, Key, KeyCode
@@ -11,6 +12,19 @@ if TYPE_CHECKING:
     from k2deck.core.midi_listener import MidiEvent
 
 logger = logging.getLogger(__name__)
+
+
+def _focus_target_app(target_app: str | None) -> bool:
+    """Focus target app if specified."""
+    if not target_app:
+        return True
+    try:
+        from k2deck.actions.window import focus_app
+
+        return focus_app(target_app)
+    except ImportError:
+        logger.warning("Window focus not available")
+        return False
 
 # Keyboard controller singleton
 _keyboard = Controller()
@@ -184,12 +198,23 @@ class HotkeyRelativeAction(Action):
     """Action for encoder-based directional hotkeys.
 
     CW rotation triggers "cw" keys, CCW triggers "ccw" keys.
+
+    Config options:
+    - cw: keys for clockwise rotation
+    - ccw: keys for counter-clockwise rotation
+    - target_app: process name to focus before sending keys (e.g., "brave.exe")
     """
 
     def execute(self, event: "MidiEvent") -> None:
         """Execute directional hotkey based on encoder direction."""
         if event.type != "cc":
             return
+
+        # Focus target app if specified
+        target_app = self.config.get("target_app")
+        if target_app:
+            _focus_target_app(target_app)
+            time.sleep(0.05)  # Brief delay for window focus
 
         # Determine direction from CC value
         # Two's complement: 1-63 = CW, 65-127 = CCW (127 = -1)

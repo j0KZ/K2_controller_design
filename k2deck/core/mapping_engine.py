@@ -11,8 +11,10 @@ from typing import TYPE_CHECKING
 from k2deck.actions.base import Action
 from k2deck.actions.hotkey import HotkeyAction, HotkeyRelativeAction
 from k2deck.actions.mouse_scroll import MouseScrollAction
+from k2deck.actions.multi import MultiAction, MultiToggleAction
 from k2deck.actions.system import NoopAction, SystemAction
 from k2deck.actions.volume import VolumeAction
+from k2deck.actions.window import FocusAction, LaunchAction
 
 if TYPE_CHECKING:
     from k2deck.core.midi_listener import MidiEvent
@@ -29,6 +31,10 @@ ACTION_TYPES: dict[str, type[Action]] = {
     "media_key": HotkeyAction,  # Media keys are just special hotkeys
     "system": SystemAction,
     "noop": NoopAction,
+    "multi": MultiAction,
+    "multi_toggle": MultiToggleAction,
+    "focus": FocusAction,
+    "launch": LaunchAction,
 }
 
 
