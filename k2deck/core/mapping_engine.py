@@ -9,6 +9,7 @@ import logging
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from k2deck.actions.audio_switch import AudioListAction, AudioSwitchAction
 from k2deck.actions.base import Action
 from k2deck.actions.conditional import ConditionalAction
 from k2deck.actions.hotkey import HotkeyAction, HotkeyRelativeAction
@@ -56,6 +57,9 @@ ACTION_TYPES: dict[str, type[Action]] = {
     # Sound actions
     "sound_play": SoundPlayAction,
     "sound_stop": SoundStopAction,
+    # Audio device actions
+    "audio_switch": AudioSwitchAction,
+    "audio_list": AudioListAction,
     # Spotify API actions
     "spotify_play_pause": SpotifyPlayPauseAction,
     "spotify_next": SpotifyNextAction,

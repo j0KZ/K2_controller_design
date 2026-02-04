@@ -21,6 +21,12 @@
   - MP3/OGG: Requires pygame (optional)
   - New file: `actions/sound.py`
 
+- **Audio Device Switch** (`audio_switch`, `audio_list`) - Change default audio device
+  - Cycle between speakers/headphones with a button
+  - Uses Windows IPolicyConfig COM interface
+  - Supports output and input devices
+  - New files: `core/audio_devices.py`, `actions/audio_switch.py`
+
 - **Software Layers** - 3x the controls on same hardware
   - Layer button cycles through layers 1-2-3
   - Per-layer mappings in config (`layer_1`, `layer_2`, `layer_3`)
