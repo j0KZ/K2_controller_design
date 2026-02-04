@@ -38,6 +38,13 @@ from k2deck.actions.spotify import (
 from k2deck.actions.sound import SoundPlayAction, SoundStopAction
 from k2deck.actions.system import ClipboardPasteAction, NoopAction, OpenURLAction, SystemAction
 from k2deck.actions.tts import TTSAction
+from k2deck.actions.twitch import (
+    TwitchChatAction,
+    TwitchClipAction,
+    TwitchGameAction,
+    TwitchMarkerAction,
+    TwitchTitleAction,
+)
 from k2deck.actions.volume import VolumeAction
 from k2deck.actions.window import FocusAction, LaunchAction
 from k2deck.core import folders, layers
@@ -94,6 +101,12 @@ ACTION_TYPES: dict[str, type[Action]] = {
     "spotify_volume": SpotifyVolumeAction,
     "spotify_seek": SpotifySeekAction,
     "spotify_prev_next": SpotifyPrevNextAction,
+    # Twitch API actions
+    "twitch_marker": TwitchMarkerAction,
+    "twitch_clip": TwitchClipAction,
+    "twitch_chat": TwitchChatAction,
+    "twitch_title": TwitchTitleAction,
+    "twitch_game": TwitchGameAction,
 }
 
 
