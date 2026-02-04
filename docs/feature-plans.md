@@ -274,36 +274,150 @@ class ConditionalAction(Action):
 └─────────────────────────────────────────────────┘
 ```
 
-### 4.1 Backend (FastAPI)
+### 4.1 Backend (FastAPI) — Plan Completo
+
+#### Referencia Hardware: Xone:K2
+```
+Controles: 52 por layer × 3 layers = 156 comandos MIDI
+├── 6 Encoders (infinite + push) → CC two's complement + Note On/Off
+├── 12 Potentiometers → CC absolute 0-127
+├── 4 Faders → CC absolute 0-127
+├── 16 Buttons (4×4 matrix) → Note On/Off + LED tri-color
+├── Layer button → Cambia entre 3 layers
+└── Exit button → Note On/Off
+
+LEDs (16 buttons): Control por NOTE OFFSET (no velocity)
+├── Red   = base_note + 0
+├── Amber = base_note + 36
+├── Green = base_note + 72
+└── Off   = Note Off en cualquiera
+
+Latching OFF = Control libre de LEDs (nuestro modo)
+X:LINK = Dos K2 conectados, un solo USB
+```
+
+#### API REST Endpoints
 
 ```python
-# k2deck/web/server.py
-from fastapi import FastAPI, WebSocket
-from fastapi.staticfiles import StaticFiles
+# ═══════════════════════════════════════════════════════════════
+# CONFIG & PROFILES
+# ═══════════════════════════════════════════════════════════════
 
-app = FastAPI()
+GET  /api/config                     # Config del perfil activo
+PUT  /api/config                     # Actualizar config (hot-reload)
+POST /api/config/validate            # Validar sin guardar
+GET  /api/config/export              # Descargar JSON completo (backup)
+POST /api/config/import              # Restaurar desde JSON
 
-# REST endpoints
-@app.get("/api/config")
-async def get_config():
-    """Get current config."""
+GET  /api/profiles                   # Lista de perfiles disponibles
+POST /api/profiles                   # Crear nuevo perfil
+GET  /api/profiles/{name}            # Obtener perfil específico
+PUT  /api/profiles/{name}            # Actualizar perfil
+DELETE /api/profiles/{name}          # Eliminar perfil
+PUT  /api/profiles/{name}/activate   # Activar perfil
 
-@app.put("/api/config")
-async def update_config(config: dict):
-    """Update and hot-reload config."""
+# ═══════════════════════════════════════════════════════════════
+# ACTIONS (para UI de configuración)
+# ═══════════════════════════════════════════════════════════════
 
-@app.get("/api/actions")
-async def get_available_actions():
-    """List all available action types with schemas."""
+GET  /api/actions                    # Lista tipos de acción disponibles
+GET  /api/actions/{type}/schema      # JSON Schema para forms dinámicos
+POST /api/actions/test               # Ejecutar acción (testing desde UI)
 
-@app.get("/api/midi/devices")
-async def get_midi_devices():
-    """List MIDI devices."""
+# ═══════════════════════════════════════════════════════════════
+# K2 HARDWARE STATE
+# ═══════════════════════════════════════════════════════════════
 
-# WebSocket for live events
-@app.websocket("/ws/events")
-async def midi_events(websocket: WebSocket):
-    """Stream MIDI events in real-time."""
+GET  /api/k2/layout                  # Layout del K2 (grid, tipos de control)
+GET  /api/k2/state                   # Estado completo (LEDs, layer, folder, conexión)
+GET  /api/k2/state/leds              # Estados de todos los LEDs
+PUT  /api/k2/state/leds/{note}       # Cambiar LED manualmente (testing)
+GET  /api/k2/state/layer             # Layer actual (0, 1, 2)
+PUT  /api/k2/state/layer             # Cambiar layer por software
+GET  /api/k2/state/folder            # Folder actual (o null)
+
+# ═══════════════════════════════════════════════════════════════
+# MIDI DEVICES
+# ═══════════════════════════════════════════════════════════════
+
+GET  /api/midi/devices               # Lista dispositivos MIDI disponibles
+GET  /api/midi/status                # Estado conexión K2 (connected, port)
+POST /api/midi/reconnect             # Forzar reconexión
+
+# ═══════════════════════════════════════════════════════════════
+# INTEGRATIONS (OBS, Spotify, Twitch)
+# ═══════════════════════════════════════════════════════════════
+
+GET  /api/integrations               # Estado de todas las integraciones
+GET  /api/integrations/{name}/status # Estado específico (obs, spotify, twitch)
+POST /api/integrations/{name}/connect    # Iniciar conexión/OAuth
+POST /api/integrations/{name}/disconnect # Desconectar
+```
+
+**Total: 21 endpoints REST**
+
+#### WebSocket Events
+
+```python
+WS /ws/events  # Bidireccional
+
+# ─────────────────────────────────────────────────────────────
+# Server → Client (push events)
+# ─────────────────────────────────────────────────────────────
+
+{ "type": "midi_event",
+  "data": { "type": "note_on", "channel": 16, "note": 36, "value": 127 } }
+
+{ "type": "led_change",
+  "data": { "note": 36, "color": "green", "on": true } }
+
+{ "type": "layer_change",
+  "data": { "layer": 1, "previous": 0 } }
+
+{ "type": "folder_change",
+  "data": { "folder": "obs_controls", "previous": null } }
+
+{ "type": "connection_change",
+  "data": { "connected": true, "port": "XONE:K2" } }
+
+{ "type": "integration_change",
+  "data": { "name": "obs", "status": "connected" } }
+
+{ "type": "profile_change",
+  "data": { "profile": "streaming", "previous": "default" } }
+
+# ─────────────────────────────────────────────────────────────
+# Client → Server (commands)
+# ─────────────────────────────────────────────────────────────
+
+{ "type": "set_led",
+  "data": { "note": 36, "color": "amber" } }
+
+{ "type": "trigger_action",
+  "data": { "action": "hotkey", "keys": ["ctrl", "s"] } }
+```
+
+**Total: 7 eventos server→client, 2 comandos client→server**
+
+#### K2 Layout Response Example
+
+```json
+{
+  "name": "Xone:K2",
+  "midi_channel": 16,
+  "layers": 3,
+  "columns": 4,
+  "rows": 8,
+  "controls": [
+    { "id": "enc1", "type": "encoder", "row": 0, "col": 0, "push": true, "led": false, "cc": 0, "note": 0 },
+    { "id": "enc2", "type": "encoder", "row": 0, "col": 1, "push": true, "led": false, "cc": 1, "note": 1 },
+    { "id": "pot1", "type": "pot", "row": 1, "col": 0, "led": false, "cc": 4 },
+    { "id": "pot2", "type": "pot", "row": 1, "col": 1, "led": false, "cc": 5 },
+    { "id": "btn_a1", "type": "button", "row": 4, "col": 0, "led": true, "note": 36,
+      "led_notes": { "red": 36, "amber": 72, "green": 108 } },
+    { "id": "fader1", "type": "fader", "row": 6, "col": 0, "led": false, "cc": 16 }
+  ]
+}
 ```
 
 ### 4.2 Frontend (Vue.js)
@@ -312,55 +426,29 @@ async def midi_events(websocket: WebSocket):
 k2deck/web/frontend/
 ├── src/
 │   ├── components/
-│   │   ├── K2Layout.vue       # Visual K2 representation
-│   │   ├── ButtonConfig.vue   # Button config editor
-│   │   ├── FaderConfig.vue    # Fader config editor
-│   │   ├── EncoderConfig.vue  # Encoder config editor
-│   │   ├── ActionPicker.vue   # Action type selector
+│   │   ├── K2Layout.vue       # Visual K2 grid (muestra LEDs en tiempo real)
+│   │   ├── ControlConfig.vue  # Editor universal (button/encoder/fader/pot)
+│   │   ├── ActionPicker.vue   # Selector de tipo de acción + form dinámico
+│   │   ├── ActionForm.vue     # Form generado desde JSON Schema
+│   │   ├── ProfileManager.vue # CRUD de perfiles
 │   │   ├── MidiMonitor.vue    # Live MIDI display
-│   │   └── ProfileList.vue    # Profile manager
+│   │   ├── IntegrationStatus.vue  # OBS/Spotify/Twitch status
+│   │   └── FolderBreadcrumb.vue   # Navegación de folders
 │   ├── stores/
-│   │   ├── config.js          # Pinia store for config
-│   │   └── midi.js            # Pinia store for MIDI state
+│   │   ├── config.js          # Pinia: config activa
+│   │   ├── k2state.js         # Pinia: LEDs, layer, folder, conexión
+│   │   ├── profiles.js        # Pinia: lista de perfiles
+│   │   └── integrations.js    # Pinia: estado integraciones
+│   ├── composables/
+│   │   ├── useWebSocket.js    # WebSocket con reconnect
+│   │   └── useApi.js          # Fetch helpers
 │   └── App.vue
 ├── package.json
 └── vite.config.js
 ```
 
-### 4.3 Config Schema (para validación y UI)
+### 4.3 Decisiones de Diseño (CONFIRMADAS)
 
-```python
-# k2deck/core/schema.py
-ACTION_SCHEMAS = {
-    "hotkey": {
-        "properties": {
-            "keys": {"type": "array", "items": {"type": "string"}},
-            "mode": {"type": "string", "enum": ["tap", "hold", "toggle"]}
-        },
-        "required": ["keys"]
-    },
-    "volume": {
-        "properties": {
-            "target_process": {"type": "string"}
-        },
-        "required": ["target_process"]
-    },
-    # ... etc
-}
-```
-
-### Dependencias
-- `fastapi`
-- `uvicorn`
-- `websockets`
-- Vue.js 3 + Vite (frontend)
-- Pinia (state management)
-- TailwindCSS (styling)
-
-### Complejidad: Alta ⚠️
-- Backend: Media (FastAPI es simple) ✅
-
-### Decisiones de Diseño (CONFIRMADAS)
 | Pregunta | Decisión | Razón |
 |----------|----------|-------|
 | ¿Puerto? | **8420** (configurable) | Memorable: K-2 layout |
@@ -368,58 +456,92 @@ ACTION_SCHEMAS = {
 | ¿Autenticación? | **Sin auth (localhost only)** | Como Stream Deck, solo escucha 127.0.0.1 |
 | ¿Cuándo inicia? | **Siempre activo** | 5MB RAM trivial, simplicidad |
 | ¿Mobile responsive? | **No, desktop only** | Optimizado para desktop |
-| ¿Framework CSS? | **TailwindCSS** | Estilo similar a Stream Deck para UX familiar |
+| ¿Framework CSS? | **TailwindCSS** | Estilo similar a Stream Deck |
 | ¿Distribución frontend? | **Build → dist/ → FastAPI static** | Single bundle |
 | ¿WebSocket reconnect? | **reconnecting-websocket npm** | Exponential backoff |
 
-### Referencia de Diseño: Stream Deck
-- Layout similar: controller visual a la izquierda, config a la derecha
-- Colores oscuros (dark mode)
-- Botones con bordes redondeados
-- Panel de acciones con iconos
-- MIDI monitor en la parte inferior
+### Wireframe UI (Stream Deck-like)
 
-### Wireframe UI
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│  K2 Deck                              [Profile: Default ▼]      │
-├─────────────────────────────────────────────────────────────────┤
-│  ┌─────────────────────────┐    ┌─────────────────────────────┐│
-│  │     K2 Visual Layout    │    │    Button/Encoder Config    ││
-│  │  [E1] [E2] [E3] [E4]   │    │  Name: [Volume Master    ]  ││
-│  │  [B1] [B2] [B3] [B4]   │    │  Action: [volume ▼        ] ││
-│  │  [B5] [B6] [B7] [B8]   │    │  Target: [master         ]  ││
-│  │  [B9] [B10][B11][B12]  │    │  [LED] Color: [green ▼]    ││
-│  │  [F1] [F2] [F3] [F4]   │    │         [Save] [Cancel]    ││
-│  └─────────────────────────┘    └─────────────────────────────┘│
-│  ┌─────────────────────────────────────────────────────────────┐│
-│  │ MIDI Monitor:  note_on ch=16 note=36 vel=127   [Clear]      ││
-│  └─────────────────────────────────────────────────────────────┘│
-└─────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────┐
+│  K2 Deck                    [obs ●] [spotify ●] [twitch ○]  [Default ▼] │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  ┌───────────────────────────┐    ┌───────────────────────────────────┐│
+│  │      K2 Visual Layout     │    │       Control Configuration       ││
+│  │  ┌────┬────┬────┬────┐   │    │                                   ││
+│  │  │ E1 │ E2 │ E3 │ E4 │   │    │  Name: [Spotify Play/Pause     ]  ││
+│  │  ├────┼────┼────┼────┤   │    │                                   ││
+│  │  │ K1 │ K2 │ K3 │ K4 │   │    │  Action: [spotify_play_pause ▼]   ││
+│  │  ├────┼────┼────┼────┤   │    │                                   ││
+│  │  │ K5 │ K6 │ K7 │ K8 │   │    │  ┌─ LED Settings ──────────────┐  ││
+│  │  ├────┼────┼────┼────┤   │    │  │ On:  [● Green ▼]            │  ││
+│  │  │ K9 │K10 │K11 │K12 │   │    │  │ Off: [● Amber ▼]            │  ││
+│  │  ├────┼────┼────┼────┤   │    │  └────────────────────────────┘  ││
+│  │  │🟢A1│ A2 │ A3 │ A4 │   │    │                                   ││
+│  │  ├────┼────┼────┼────┤   │    │  ┌─ Layer Settings ────────────┐  ││
+│  │  │ B1 │ B2 │ B3 │ B4 │   │    │  │ Layer 0: [this action    ]  │  ││
+│  │  ├────┼────┼────┼────┤   │    │  │ Layer 1: [different      ]  │  ││
+│  │  │ C1 │ C2 │ C3 │ C4 │   │    │  │ Layer 2: [another        ]  │  ││
+│  │  ├────┼────┼────┼────┤   │    │  └────────────────────────────┘  ││
+│  │  │ F1 │ F2 │ F3 │ F4 │   │    │                                   ││
+│  │  ├────┼────┼────┼────┤   │    │         [Save] [Cancel] [Test]   ││
+│  │  │ D1 │ D2 │ D3 │ D4 │   │    │                                   ││
+│  │  └────┴────┴────┴────┘   │    └───────────────────────────────────┘│
+│  │  Layer: [0] [1] [2]      │                                         │
+│  │  Folder: / > obs_controls│                                         │
+│  └───────────────────────────┘                                         │
+│                                                                         │
+│  ┌─────────────────────────────────────────────────────────────────────┐│
+│  │ MIDI: note_on ch=16 note=36 vel=127 │ K2: Connected │ [Clear]       ││
+│  └─────────────────────────────────────────────────────────────────────┘│
+└─────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Estimación LOC Corregida
-- Backend: ~400 LOC ✅
-- Frontend: ~3000 LOC (no 1500) - componentes, stores, utilidades, estilos
+### Estimación LOC
+
+| Componente | LOC | Descripción |
+|------------|-----|-------------|
+| Backend (FastAPI) | ~900 | 21 endpoints + WebSocket + validación |
+| Frontend (Vue) | ~3000 | Componentes, stores, composables |
+| **Total Web UI** | **~3900** | |
 
 ### Archivos a crear
+
 ```
 k2deck/web/
 ├── __init__.py
-├── server.py           # FastAPI app + CORS + static files
+├── server.py               # FastAPI app + lifespan + CORS
 ├── routes/
-│   ├── config.py
-│   ├── actions.py
-│   └── midi.py
-├── middleware/
-│   └── auth.py         # Token auth para localhost
-└── frontend/           # Vue.js app (separado)
+│   ├── __init__.py
+│   ├── config.py           # /api/config/* (5 endpoints)
+│   ├── profiles.py         # /api/profiles/* (6 endpoints)
+│   ├── actions.py          # /api/actions/* (3 endpoints)
+│   ├── k2.py               # /api/k2/* (6 endpoints)
+│   ├── midi.py             # /api/midi/* (3 endpoints)
+│   └── integrations.py     # /api/integrations/* (4 endpoints)
+├── websocket/
+│   ├── __init__.py
+│   ├── manager.py          # ConnectionManager (broadcast)
+│   └── events.py           # Event handlers
+├── schemas/
+│   ├── __init__.py
+│   ├── config.py           # Pydantic models for config
+│   ├── actions.py          # Action schemas for validation
+│   └── k2.py               # K2 state models
+└── frontend/               # Vue.js app
     ├── src/
-    │   ├── components/
-    │   ├── stores/
-    │   ├── composables/  # WebSocket, API hooks
-    │   └── utils/
-    └── dist/           # Built files served by FastAPI
+    ├── dist/               # Built files (served by FastAPI)
+    └── package.json
+```
+
+### Dependencias Backend
+
+```
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+websockets>=12.0
+pydantic>=2.5.0
 ```
 
 ---
@@ -1341,7 +1463,7 @@ class TTSAction(Action):
 | 7 | Text-to-Speech | ✅ DONE | ~90 | - |
 | 8 | Folders/Pages | ✅ DONE | ~545 | - |
 | 9 | Twitch Integration | ✅ DONE | ~570 | - |
-| 10 | **Web UI Backend** | ❌ TODO | ~600 | Alta |
+| 10 | **Web UI Backend** | ❌ TODO | ~900 | Alta |
 | 11 | **Web UI Frontend** | ❌ TODO | ~3000 | Alta |
 | 12 | **Plugin System** | ❌ TODO | ~500 | Baja |
 
