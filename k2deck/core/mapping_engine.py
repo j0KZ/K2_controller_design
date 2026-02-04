@@ -13,6 +13,7 @@ from k2deck.actions.audio_switch import AudioListAction, AudioSwitchAction
 from k2deck.actions.base import Action
 from k2deck.actions.conditional import ConditionalAction
 from k2deck.actions.counter import CounterAction
+from k2deck.actions.folder import FolderAction, FolderBackAction, FolderRootAction
 from k2deck.actions.obs import (
     OBSMuteAction,
     OBSRecordAction,
@@ -39,7 +40,7 @@ from k2deck.actions.system import ClipboardPasteAction, NoopAction, OpenURLActio
 from k2deck.actions.tts import TTSAction
 from k2deck.actions.volume import VolumeAction
 from k2deck.actions.window import FocusAction, LaunchAction
-from k2deck.core import layers
+from k2deck.core import folders, layers
 
 if TYPE_CHECKING:
     from k2deck.core.midi_listener import MidiEvent
@@ -79,6 +80,10 @@ ACTION_TYPES: dict[str, type[Action]] = {
     "counter": CounterAction,
     # Text-to-Speech action
     "tts": TTSAction,
+    # Folder actions
+    "folder": FolderAction,
+    "folder_back": FolderBackAction,
+    "folder_root": FolderRootAction,
     # Spotify API actions
     "spotify_play_pause": SpotifyPlayPauseAction,
     "spotify_next": SpotifyNextAction,
@@ -330,11 +335,25 @@ class MappingEngine:
         mapping_config = None
 
         if event.type == "note_on":
-            # Look up in note_on mappings
-            note_mappings = zone_mappings.get("note_on", {})
-            raw_config = note_mappings.get(str(event.note))
-            # Resolve layer-specific mapping
-            mapping_config = layers.resolve_layer_mapping(raw_config, event.note)
+            # Check if we're in a folder (folders only affect note_on mappings)
+            folder_mgr = folders.get_folder_manager()
+            if folder_mgr.in_folder:
+                # Look in folder mappings first
+                folder_mappings = self._config.get("folders", {}).get(
+                    folder_mgr.current_folder, {}
+                )
+                folder_note_mappings = folder_mappings.get("note_on", {})
+                raw_config = folder_note_mappings.get(str(event.note))
+                if raw_config:
+                    # Resolve layer-specific mapping from folder
+                    mapping_config = layers.resolve_layer_mapping(raw_config, event.note)
+
+            # If not found in folder (or not in folder), use regular mappings
+            if mapping_config is None:
+                note_mappings = zone_mappings.get("note_on", {})
+                raw_config = note_mappings.get(str(event.note))
+                # Resolve layer-specific mapping
+                mapping_config = layers.resolve_layer_mapping(raw_config, event.note)
 
         elif event.type == "note_off":
             # Note off typically doesn't trigger actions
