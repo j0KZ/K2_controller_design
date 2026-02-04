@@ -12,6 +12,14 @@ from typing import TYPE_CHECKING
 from k2deck.actions.audio_switch import AudioListAction, AudioSwitchAction
 from k2deck.actions.base import Action
 from k2deck.actions.conditional import ConditionalAction
+from k2deck.actions.counter import CounterAction
+from k2deck.actions.obs import (
+    OBSMuteAction,
+    OBSRecordAction,
+    OBSSceneAction,
+    OBSSourceToggleAction,
+    OBSStreamAction,
+)
 from k2deck.actions.hotkey import HotkeyAction, HotkeyRelativeAction
 from k2deck.actions.mouse_scroll import MouseScrollAction
 from k2deck.actions.multi import MultiAction, MultiToggleAction
@@ -28,6 +36,7 @@ from k2deck.actions.spotify import (
 )
 from k2deck.actions.sound import SoundPlayAction, SoundStopAction
 from k2deck.actions.system import ClipboardPasteAction, NoopAction, OpenURLAction, SystemAction
+from k2deck.actions.tts import TTSAction
 from k2deck.actions.volume import VolumeAction
 from k2deck.actions.window import FocusAction, LaunchAction
 from k2deck.core import layers
@@ -60,6 +69,16 @@ ACTION_TYPES: dict[str, type[Action]] = {
     # Audio device actions
     "audio_switch": AudioSwitchAction,
     "audio_list": AudioListAction,
+    # OBS WebSocket actions
+    "obs_scene": OBSSceneAction,
+    "obs_source_toggle": OBSSourceToggleAction,
+    "obs_stream": OBSStreamAction,
+    "obs_record": OBSRecordAction,
+    "obs_mute": OBSMuteAction,
+    # Counter action
+    "counter": CounterAction,
+    # Text-to-Speech action
+    "tts": TTSAction,
     # Spotify API actions
     "spotify_play_pause": SpotifyPlayPauseAction,
     "spotify_next": SpotifyNextAction,

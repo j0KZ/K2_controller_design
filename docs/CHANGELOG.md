@@ -27,6 +27,30 @@
   - Supports output and input devices
   - New files: `core/audio_devices.py`, `actions/audio_switch.py`
 
+- **OBS WebSocket Integration** (`obs_scene`, `obs_source_toggle`, `obs_stream`, `obs_record`, `obs_mute`)
+  - Control OBS Studio via WebSocket v5 API
+  - Switch scenes with a button press
+  - Toggle source visibility (webcam, overlays, etc.)
+  - Start/stop/toggle streaming and recording
+  - Mute/unmute audio inputs
+  - Singleton client with auto-reconnect logic
+  - Lazy connection (only connects on first OBS action)
+  - Requires `obsws-python` (optional dependency)
+  - New files: `core/obs_client.py`, `actions/obs.py`
+
+- **Counter Actions** (`counter`) - Persistent counters for tracking
+  - Increment, decrement, reset, or set counter values
+  - Counters persist to `~/.k2deck/counters.json`
+  - Callback system for state change notifications
+  - Singleton CounterManager with JSON persistence
+  - New files: `core/counters.py`, `actions/counter.py`
+
+- **Text-to-Speech** (`tts`) - Speak text on button press
+  - Uses Windows SAPI via pyttsx3 (system default voice)
+  - Configurable speech rate and volume
+  - Optional dependency with graceful fallback
+  - New file: `actions/tts.py`
+
 - **Software Layers** - 3x the controls on same hardware
   - Layer button cycles through layers 1-2-3
   - Per-layer mappings in config (`layer_1`, `layer_2`, `layer_3`)
@@ -55,8 +79,8 @@
 - Tests now use `patch.dict()` for dangerous system commands
 
 ### Tests
-- 166 tests passing (6 skipped for safety)
-- New test files for: keyboard, layers, conditional actions, profile switcher, multi actions, system actions, volume actions
+- 262 tests passing (6 skipped for safety)
+- New test files for: keyboard, layers, conditional actions, profile switcher, multi actions, system actions, volume actions, sound, audio switch, OBS, counter, TTS
 
 ---
 

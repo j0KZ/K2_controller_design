@@ -531,154 +531,791 @@ k2deck/plugins/
 
 ---
 
-## Stream Deck Features No Considerados
+## Stream Deck vs K2 Deck - Estado Actualizado
 
-Features de Stream Deck que K2 Deck aún no tiene planificados:
+### ✅ Implementado (Paridad o Mejor)
 
-### Ya Implementados ✅
-| Feature | Estado |
-|---------|--------|
-| Multi-action con delays | ✅ `multi_toggle` action |
-| Hotkeys | ✅ `hotkey` action |
-| Per-app volume | ✅ `volume` action |
-| Toggle states | ✅ LED toggle mode |
-| Layers | ✅ Software layers |
+| Feature | Stream Deck | K2 Deck | Estado |
+|---------|-------------|---------|--------|
+| Hotkeys | ✅ | ✅ | `hotkey` (tap, hold, toggle) |
+| Multi-action con delays | ✅ | ✅ | `multi`, `multi_toggle` |
+| System commands | ✅ | ✅ | `system` (lock, sleep, shutdown, etc.) |
+| Open URL | ✅ | ✅ | `open_url` |
+| Clipboard paste | ✅ | ✅ | `clipboard_paste` |
+| Sound playback | ✅ | ✅ | `sound_play`, `sound_stop` |
+| Audio device switch | ✅ | ✅ | `audio_switch`, `audio_list` |
+| OBS control | ✅ | ✅ | `obs_scene`, `obs_stream`, etc. |
+| Profile auto-switch | ✅ | ✅ | `profile_switcher.py` |
+| Conditional actions | ✅ | ✅ | `conditional` |
+| Toggle states | ✅ | ✅ | LED toggle mode |
+| Layers/Pages | ✅ | ✅ | Software layers (3) |
+| Window focus/launch | ✅ | ✅ | `focus`, `launch` |
+| Per-app volume | Plugin | ✅ | `volume` action |
+| Spotify | Plugin ($5) | ✅ | **Gratis** - Full API |
 
-### Falta Implementar (Prioridad Alta)
-| Feature | Descripción | Complejidad |
-|---------|-------------|-------------|
-| **Profile auto-switch** | Cambiar perfil según app activa | Media |
-| **Website open** | Abrir URL en browser default | Baja |
-| **System commands** | Shutdown, sleep, lock, restart | Baja |
-| **Sound playback** | Reproducir archivo de audio | Media |
+### 🚀 K2 Deck Exclusivo (Mejor que Stream Deck)
 
-### Falta Implementar (Prioridad Media)
-| Feature | Descripción | Complejidad |
-|---------|-------------|-------------|
-| **Folders/Pages** | Botón que abre "sub-página" de acciones | Alta |
-| **Timer/Stopwatch** | Mostrar tiempo en pantalla (no aplicable a K2 sin display) | N/A |
-| **Counter** | Incrementar/decrementar valor persistente | Baja |
-| **Text-to-Speech** | Leer texto en voz alta | Media |
-| **Clipboard actions** | Pegar texto predefinido | Baja |
+| Feature | Descripción |
+|---------|-------------|
+| **Encoders** | Control rotativo para volumen/seek (SD no tiene) |
+| **Faders** | Control analógico continuo (SD no tiene) |
+| **Multi-K2** | Dos controladores como uno |
+| **MIDI output** | Controlar otros dispositivos MIDI |
 
-### No Aplicable a K2 ❌
+### ❌ Pendiente de Implementar
+
+| Feature | Stream Deck | Prioridad | Plan |
+|---------|-------------|-----------|------|
+| Folders/Sub-pages | ✅ | Alta | Ver §6 |
+| Counter | ✅ | Media | Ver §7 |
+| Twitch integration | ✅ | Media | Ver §8 |
+| Text-to-Speech | ✅ | Baja | Ver §9 |
+| Web UI | ✅ | Alta | Ver §4 (existente) |
+| Plugin System | ✅ | Baja | Ver §5 (existente) |
+
+### ❌ No Aplicable a K2
+
 | Feature | Razón |
 |---------|-------|
 | Animated icons | K2 solo tiene LEDs tricolor |
 | Title/text on buttons | K2 no tiene display |
 | Icon customization | K2 no tiene display |
 | Screensaver | K2 no tiene display |
+| Timer display | K2 no tiene display |
 
-### Nuevas Acciones Sugeridas
+---
 
-```python
-# k2deck/actions/system.py (ampliar)
-class OpenURLAction(Action):
-    """Open URL in default browser."""
-    # config: { "url": "https://..." }
+## 6. Folders / Sub-Pages
 
-class SystemCommandAction(Action):
-    """Execute system command: shutdown, sleep, lock, restart."""
-    # config: { "command": "lock" }  # lock, sleep, shutdown, restart, hibernate
+### Objetivo
+Permitir que un botón "abra" un sub-conjunto de acciones, multiplicando la cantidad de controles disponibles sin cambiar de layer físico.
 
-class SoundPlayAction(Action):
-    """Play audio file."""
-    # config: { "file": "path/to/sound.mp3", "volume": 80 }
+### Concepto
+- Un botón configurado como `folder` cambia temporalmente los mappings de otros botones
+- LEDs indican que estamos en un folder (todos amber por ejemplo)
+- Presionar el mismo botón (o uno de "back") regresa al mapping principal
 
-class ClipboardPasteAction(Action):
-    """Paste predefined text."""
-    # config: { "text": "Hello world" }
-
-class CounterAction(Action):
-    """Increment/decrement persistent counter."""
-    # config: { "name": "my_counter", "operation": "increment" }
-```
-
-### Profile Auto-Switch (Detalle)
+### Implementación
 
 ```python
-# k2deck/core/profile_switcher.py
-class ProfileAutoSwitcher:
-    """Watch foreground app and switch profiles automatically."""
+# k2deck/core/folders.py
+import logging
+from typing import Callable
 
-    def __init__(self, rules: list[dict]):
-        # rules: [{"app": "obs64.exe", "profile": "streaming"}, ...]
-        self._rules = rules
-        self._current_profile = None
+logger = logging.getLogger(__name__)
 
-    def check_and_switch(self):
-        """Called from context cache update."""
-        foreground = get_foreground_app()
-        for rule in self._rules:
-            if rule["app"].lower() in foreground.lower():
-                if self._current_profile != rule["profile"]:
-                    self._switch_profile(rule["profile"])
-                return
+class FolderManager:
+    """Manages folder navigation for button sub-pages."""
+
+    _instance = None
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            cls._instance._initialized = False
+        return cls._instance
+
+    def __init__(self):
+        if self._initialized:
+            return
+        self._current_folder: str | None = None
+        self._folder_stack: list[str] = []
+        self._callbacks: list[Callable] = []
+        self._initialized = True
+
+    @property
+    def current_folder(self) -> str | None:
+        """Get current active folder name."""
+        return self._current_folder
+
+    @property
+    def in_folder(self) -> bool:
+        """Check if we're inside a folder."""
+        return self._current_folder is not None
+
+    def enter_folder(self, folder_name: str) -> None:
+        """Enter a folder."""
+        if self._current_folder:
+            self._folder_stack.append(self._current_folder)
+        self._current_folder = folder_name
+        logger.info("Entered folder: %s", folder_name)
+        self._notify_callbacks()
+
+    def exit_folder(self) -> None:
+        """Exit current folder (go back)."""
+        if self._folder_stack:
+            self._current_folder = self._folder_stack.pop()
+        else:
+            self._current_folder = None
+        logger.info("Exited to: %s", self._current_folder or "root")
+        self._notify_callbacks()
+
+    def exit_to_root(self) -> None:
+        """Exit all folders, return to root."""
+        self._current_folder = None
+        self._folder_stack.clear()
+        logger.info("Exited to root")
+        self._notify_callbacks()
+
+    def register_callback(self, callback: Callable) -> None:
+        """Register callback for folder changes."""
+        self._callbacks.append(callback)
+
+    def _notify_callbacks(self) -> None:
+        """Notify all registered callbacks."""
+        for callback in self._callbacks:
+            try:
+                callback(self._current_folder)
+            except Exception as e:
+                logger.error("Folder callback error: %s", e)
+
+
+# k2deck/actions/folder.py
+class FolderAction(Action):
+    """Enter a folder (sub-page of actions)."""
+
+    def __init__(self, config: dict):
+        super().__init__(config)
+        self._folder = config.get("folder", "")
+
+    def execute(self, event: "MidiEvent") -> None:
+        if event.type != "note_on" or event.value == 0:
+            return
+
+        from k2deck.core.folders import FolderManager
+        FolderManager().enter_folder(self._folder)
+
+
+class FolderBackAction(Action):
+    """Exit current folder (go back one level)."""
+
+    def execute(self, event: "MidiEvent") -> None:
+        if event.type != "note_on" or event.value == 0:
+            return
+
+        from k2deck.core.folders import FolderManager
+        FolderManager().exit_folder()
+
+
+class FolderRootAction(Action):
+    """Exit all folders, return to root."""
+
+    def execute(self, event: "MidiEvent") -> None:
+        if event.type != "note_on" or event.value == 0:
+            return
+
+        from k2deck.core.folders import FolderManager
+        FolderManager().exit_to_root()
 ```
 
-### Config para Auto-Switch
+### Config Format
 
 ```json
 {
-  "profile_auto_switch": {
-    "enabled": true,
-    "rules": [
-      { "app": "obs64.exe", "profile": "streaming" },
-      { "app": "Adobe Premiere", "profile": "video_editing" },
-      { "app": "Ableton", "profile": "music" }
-    ],
-    "default_profile": "default"
+  "mappings": {
+    "note_on": {
+      "36": {
+        "name": "Open OBS Folder",
+        "action": "folder",
+        "folder": "obs_controls"
+      }
+    }
+  },
+  "folders": {
+    "obs_controls": {
+      "note_on": {
+        "36": { "action": "folder_back", "name": "Back" },
+        "37": { "action": "obs_scene", "scene": "Gaming" },
+        "38": { "action": "obs_scene", "scene": "Desktop" },
+        "39": { "action": "obs_stream", "mode": "toggle" },
+        "40": { "action": "obs_record", "mode": "toggle" }
+      }
+    }
   }
 }
 ```
+
+### Integración con MappingEngine
+
+```python
+# En mapping_engine.py, modificar resolve():
+def resolve(self, event: "MidiEvent") -> tuple[Action | None, dict | None]:
+    # Check if in folder
+    from k2deck.core.folders import FolderManager
+    folder_mgr = FolderManager()
+
+    if folder_mgr.in_folder:
+        # Look in folder mappings first
+        folder_mappings = self._config.get("folders", {}).get(folder_mgr.current_folder, {})
+        # ... resolve from folder_mappings
+
+    # Fall back to regular mappings
+    # ... existing logic
+```
+
+### Complejidad: Media ⚠️
+- Lógica simple de stack para navegación
+- **Consideraciones:**
+  - Integración con layers (folder per layer?)
+  - LED feedback para indicar folder activo
+  - Timeout para auto-exit de folder?
+  - Máximo depth de folders anidados (3)
+
+### Archivos a crear
+- `k2deck/core/folders.py` (~100 LOC)
+- `k2deck/actions/folder.py` (~60 LOC)
+- Modificar `k2deck/core/mapping_engine.py` (~30 LOC)
+
+### Tests
+- ~10 tests: enter/exit/stack/root/callbacks
+
+---
+
+## 7. Counter Action
+
+### Objetivo
+Mantener un contador persistente que se puede incrementar/decrementar con botones, útil para tracking (kills, reps, pomodoros, etc.)
+
+### Implementación
+
+```python
+# k2deck/core/counters.py
+import json
+import logging
+from pathlib import Path
+from typing import Callable
+
+logger = logging.getLogger(__name__)
+
+class CounterManager:
+    """Manages persistent counters."""
+
+    _instance = None
+    COUNTERS_FILE = Path.home() / ".k2deck" / "counters.json"
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            cls._instance._initialized = False
+        return cls._instance
+
+    def __init__(self):
+        if self._initialized:
+            return
+        self._counters: dict[str, int] = {}
+        self._callbacks: dict[str, list[Callable]] = {}
+        self._load()
+        self._initialized = True
+
+    def _load(self) -> None:
+        """Load counters from disk."""
+        try:
+            if self.COUNTERS_FILE.exists():
+                self._counters = json.loads(self.COUNTERS_FILE.read_text())
+                logger.info("Loaded %d counters", len(self._counters))
+        except Exception as e:
+            logger.warning("Failed to load counters: %s", e)
+            self._counters = {}
+
+    def _save(self) -> None:
+        """Save counters to disk."""
+        try:
+            self.COUNTERS_FILE.parent.mkdir(parents=True, exist_ok=True)
+            self.COUNTERS_FILE.write_text(json.dumps(self._counters, indent=2))
+        except Exception as e:
+            logger.error("Failed to save counters: %s", e)
+
+    def get(self, name: str) -> int:
+        """Get counter value."""
+        return self._counters.get(name, 0)
+
+    def set(self, name: str, value: int) -> None:
+        """Set counter value."""
+        self._counters[name] = value
+        self._save()
+        self._notify(name, value)
+        logger.info("Counter '%s' = %d", name, value)
+
+    def increment(self, name: str, amount: int = 1) -> int:
+        """Increment counter, return new value."""
+        value = self.get(name) + amount
+        self.set(name, value)
+        return value
+
+    def decrement(self, name: str, amount: int = 1) -> int:
+        """Decrement counter, return new value."""
+        value = self.get(name) - amount
+        self.set(name, value)
+        return value
+
+    def reset(self, name: str) -> None:
+        """Reset counter to 0."""
+        self.set(name, 0)
+
+    def register_callback(self, name: str, callback: Callable[[int], None]) -> None:
+        """Register callback for counter changes."""
+        if name not in self._callbacks:
+            self._callbacks[name] = []
+        self._callbacks[name].append(callback)
+
+    def _notify(self, name: str, value: int) -> None:
+        """Notify callbacks for counter."""
+        for callback in self._callbacks.get(name, []):
+            try:
+                callback(value)
+            except Exception as e:
+                logger.error("Counter callback error: %s", e)
+
+
+# k2deck/actions/counter.py
+class CounterAction(Action):
+    """Increment/decrement/reset a persistent counter."""
+
+    def __init__(self, config: dict):
+        super().__init__(config)
+        self._name = config.get("name", "default")
+        self._operation = config.get("operation", "increment")  # increment, decrement, reset, set
+        self._amount = config.get("amount", 1)
+        self._value = config.get("value", 0)  # For "set" operation
+
+    def execute(self, event: "MidiEvent") -> None:
+        if event.type != "note_on" or event.value == 0:
+            return
+
+        from k2deck.core.counters import CounterManager
+        mgr = CounterManager()
+
+        if self._operation == "increment":
+            value = mgr.increment(self._name, self._amount)
+        elif self._operation == "decrement":
+            value = mgr.decrement(self._name, self._amount)
+        elif self._operation == "reset":
+            mgr.reset(self._name)
+            value = 0
+        elif self._operation == "set":
+            mgr.set(self._name, self._value)
+            value = self._value
+        else:
+            return
+
+        logger.info("Counter '%s': %d", self._name, value)
+```
+
+### Config Format
+
+```json
+{
+  "36": {
+    "name": "Increment Kills",
+    "action": "counter",
+    "counter": "kills",
+    "operation": "increment"
+  },
+  "37": {
+    "name": "Decrement Kills",
+    "action": "counter",
+    "counter": "kills",
+    "operation": "decrement"
+  },
+  "38": {
+    "name": "Reset Kills",
+    "action": "counter",
+    "counter": "kills",
+    "operation": "reset"
+  }
+}
+```
+
+### Complejidad: Baja ✅
+- JSON persistence simple
+- Sin display, solo log output
+- Callbacks para futura integración con Web UI
+
+### Archivos a crear
+- `k2deck/core/counters.py` (~80 LOC)
+- `k2deck/actions/counter.py` (~50 LOC)
+
+### Tests
+- ~8 tests: get/set/increment/decrement/reset/persistence/callbacks
+
+---
+
+## 8. Twitch Integration
+
+### Objetivo
+Integración con Twitch para streamers: chat commands, markers, clips, predictions.
+
+### Implementación
+
+```python
+# k2deck/core/twitch_client.py
+import logging
+import webbrowser
+from typing import Any
+
+logger = logging.getLogger(__name__)
+
+# Optional dependency
+try:
+    from twitchAPI.twitch import Twitch
+    from twitchAPI.oauth import UserAuthenticator
+    from twitchAPI.type import AuthScope
+    HAS_TWITCH = True
+except ImportError:
+    HAS_TWITCH = False
+
+
+class TwitchClientManager:
+    """Singleton manager for Twitch API connection."""
+
+    _instance = None
+    SCOPES = [
+        AuthScope.CHANNEL_MANAGE_BROADCAST,  # Markers, title, game
+        AuthScope.CLIPS_EDIT,                 # Create clips
+        AuthScope.CHANNEL_MANAGE_PREDICTIONS, # Predictions
+        AuthScope.CHAT_EDIT,                  # Send chat messages
+        AuthScope.CHAT_READ,                  # Read chat
+    ]
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            cls._instance._initialized = False
+        return cls._instance
+
+    def __init__(self):
+        if self._initialized:
+            return
+        self._twitch: Any = None
+        self._user_id: str | None = None
+        self._client_id: str = ""
+        self._client_secret: str = ""
+        self._connected = False
+        self._initialized = True
+
+    def configure(self, client_id: str, client_secret: str) -> None:
+        """Configure Twitch API credentials."""
+        self._client_id = client_id
+        self._client_secret = client_secret
+
+    @property
+    def is_available(self) -> bool:
+        return HAS_TWITCH
+
+    @property
+    def is_connected(self) -> bool:
+        return self._connected
+
+    async def connect(self) -> bool:
+        """Authenticate with Twitch."""
+        if not HAS_TWITCH:
+            logger.warning("twitchAPI not installed. Run: pip install twitchAPI")
+            return False
+
+        try:
+            self._twitch = await Twitch(self._client_id, self._client_secret)
+            auth = UserAuthenticator(self._twitch, self.SCOPES)
+            token, refresh = await auth.authenticate()
+            await self._twitch.set_user_authentication(token, self.SCOPES, refresh)
+
+            # Get user ID
+            users = await self._twitch.get_users()
+            self._user_id = users.data[0].id
+            self._connected = True
+            logger.info("Connected to Twitch as user %s", self._user_id)
+            return True
+        except Exception as e:
+            logger.error("Twitch connection failed: %s", e)
+            return False
+
+    async def create_marker(self, description: str = "") -> bool:
+        """Create a stream marker."""
+        if not self._connected:
+            return False
+        try:
+            await self._twitch.create_stream_marker(self._user_id, description)
+            logger.info("Twitch marker created: %s", description)
+            return True
+        except Exception as e:
+            logger.warning("Failed to create marker: %s", e)
+            return False
+
+    async def create_clip(self) -> str | None:
+        """Create a clip, return clip URL."""
+        if not self._connected:
+            return None
+        try:
+            result = await self._twitch.create_clip(self._user_id)
+            clip_id = result.data[0].id
+            logger.info("Twitch clip created: %s", clip_id)
+            return f"https://clips.twitch.tv/{clip_id}"
+        except Exception as e:
+            logger.warning("Failed to create clip: %s", e)
+            return None
+
+    async def send_chat(self, message: str) -> bool:
+        """Send chat message."""
+        if not self._connected:
+            return False
+        try:
+            await self._twitch.send_chat_message(self._user_id, self._user_id, message)
+            logger.info("Chat sent: %s", message[:50])
+            return True
+        except Exception as e:
+            logger.warning("Failed to send chat: %s", e)
+            return False
+
+    async def update_title(self, title: str) -> bool:
+        """Update stream title."""
+        if not self._connected:
+            return False
+        try:
+            await self._twitch.modify_channel_information(self._user_id, title=title)
+            logger.info("Stream title updated: %s", title)
+            return True
+        except Exception as e:
+            logger.warning("Failed to update title: %s", e)
+            return False
+
+
+# k2deck/actions/twitch.py
+import asyncio
+
+class TwitchMarkerAction(Action):
+    """Create a Twitch stream marker."""
+
+    def __init__(self, config: dict):
+        super().__init__(config)
+        self._description = config.get("description", "")
+
+    def execute(self, event: "MidiEvent") -> None:
+        if event.type != "note_on" or event.value == 0:
+            return
+
+        from k2deck.core.twitch_client import TwitchClientManager
+        client = TwitchClientManager()
+        if not client.is_available:
+            return
+
+        asyncio.create_task(client.create_marker(self._description))
+
+
+class TwitchClipAction(Action):
+    """Create a Twitch clip."""
+
+    def execute(self, event: "MidiEvent") -> None:
+        if event.type != "note_on" or event.value == 0:
+            return
+
+        from k2deck.core.twitch_client import TwitchClientManager
+        client = TwitchClientManager()
+        if not client.is_available:
+            return
+
+        asyncio.create_task(client.create_clip())
+
+
+class TwitchChatAction(Action):
+    """Send a chat message."""
+
+    def __init__(self, config: dict):
+        super().__init__(config)
+        self._message = config.get("message", "")
+
+    def execute(self, event: "MidiEvent") -> None:
+        if event.type != "note_on" or event.value == 0:
+            return
+
+        from k2deck.core.twitch_client import TwitchClientManager
+        client = TwitchClientManager()
+        if not client.is_available:
+            return
+
+        asyncio.create_task(client.send_chat(self._message))
+```
+
+### Config Format
+
+```json
+{
+  "integrations": {
+    "twitch": {
+      "enabled": true,
+      "client_id": "your-client-id",
+      "client_secret": "your-client-secret"
+    }
+  }
+}
+```
+
+```json
+{
+  "36": { "action": "twitch_marker", "description": "Highlight" },
+  "37": { "action": "twitch_clip" },
+  "38": { "action": "twitch_chat", "message": "Thanks for the follow!" }
+}
+```
+
+### Dependencias
+- `twitchAPI` (pip install twitchAPI)
+- Twitch Developer Application (client_id, client_secret)
+
+### Complejidad: Media ⚠️
+- OAuth flow similar a Spotify
+- Async API requires careful integration
+- Rate limits to consider
+
+### Archivos a crear
+- `k2deck/core/twitch_client.py` (~200 LOC)
+- `k2deck/actions/twitch.py` (~100 LOC)
+
+### Tests
+- ~10 tests: mock twitchAPI, test actions
+
+---
+
+## 9. Text-to-Speech
+
+### Objetivo
+Reproducir texto como voz, útil para alertas o accesibilidad.
+
+### Implementación
+
+```python
+# k2deck/actions/tts.py
+import logging
+from typing import TYPE_CHECKING
+
+from k2deck.actions.base import Action
+
+if TYPE_CHECKING:
+    from k2deck.core.midi_listener import MidiEvent
+
+logger = logging.getLogger(__name__)
+
+# Optional: use Windows SAPI or pyttsx3
+try:
+    import pyttsx3
+    HAS_TTS = True
+except ImportError:
+    HAS_TTS = False
+
+
+class TTSAction(Action):
+    """Speak text using text-to-speech."""
+
+    _engine = None
+
+    def __init__(self, config: dict):
+        super().__init__(config)
+        self._text = config.get("text", "")
+        self._rate = config.get("rate", 150)  # Words per minute
+        self._volume = config.get("volume", 1.0)  # 0.0 to 1.0
+
+    @classmethod
+    def _get_engine(cls):
+        """Get or create TTS engine."""
+        if cls._engine is None and HAS_TTS:
+            cls._engine = pyttsx3.init()
+        return cls._engine
+
+    def execute(self, event: "MidiEvent") -> None:
+        if event.type != "note_on" or event.value == 0:
+            return
+
+        if not HAS_TTS:
+            logger.warning("pyttsx3 not installed. Run: pip install pyttsx3")
+            return
+
+        if not self._text:
+            logger.warning("TTSAction: no text configured")
+            return
+
+        engine = self._get_engine()
+        if engine:
+            engine.setProperty('rate', self._rate)
+            engine.setProperty('volume', self._volume)
+            engine.say(self._text)
+            engine.runAndWait()
+            logger.info("TTS: %s", self._text[:50])
+```
+
+### Config Format
+
+```json
+{
+  "36": {
+    "action": "tts",
+    "text": "Stream starting in 5 minutes",
+    "rate": 150,
+    "volume": 0.8
+  }
+}
+```
+
+### Dependencias
+- `pyttsx3` (pip install pyttsx3) - opcional
+- Windows SAPI (built-in, no deps)
+
+### Complejidad: Baja ✅
+
+### Archivos a crear
+- `k2deck/actions/tts.py` (~50 LOC)
+
+### Tests
+- ~5 tests: mock pyttsx3
 
 ---
 
 ## Orden de Implementación Actualizado
 
-| # | Feature | Razón | LOC |
-|---|---------|-------|-----|
-| 1 | **System Commands** | Trivial, muy útil | ~50 |
-| 2 | **Open URL** | Trivial, muy útil | ~30 |
-| 3 | **Clipboard Paste** | Trivial, muy útil | ~40 |
-| 4 | **Conditional Actions** | Base para auto-switch | ~300 |
-| 5 | **Profile Auto-Switch** | Usa conditional, muy útil | ~150 |
-| 6 | **Audio Device Switch** | Media, popular request | ~350 |
-| 7 | **OBS WebSocket** | Media, streaming users | ~400 |
-| 8 | **Sound Playback** | Media, nice-to-have | ~100 |
-| 9 | **Web UI Backend** | Necesario antes frontend | ~600 |
-| 10 | **Web UI Frontend** | Depende del backend | ~3000 |
-| 11 | **Plugin System** | Último, requiere estabilidad | ~500 |
+| # | Feature | Estado | LOC | Prioridad |
+|---|---------|--------|-----|-----------|
+| 1 | Audio Device Switch | ✅ DONE | ~350 | - |
+| 2 | OBS WebSocket | ✅ DONE | ~470 | - |
+| 3 | Conditional Actions | ✅ DONE | ~300 | - |
+| 4 | Sound Playback | ✅ DONE | ~170 | - |
+| 5 | Profile Auto-Switch | ✅ DONE | ~150 | - |
+| 6 | **Folders/Pages** | ❌ TODO | ~190 | Alta |
+| 7 | **Counter** | ❌ TODO | ~130 | Media |
+| 8 | **Twitch Integration** | ❌ TODO | ~300 | Media |
+| 9 | **Text-to-Speech** | ❌ TODO | ~50 | Baja |
+| 10 | Web UI Backend | ❌ TODO | ~600 | Alta |
+| 11 | Web UI Frontend | ❌ TODO | ~3000 | Alta |
+| 12 | Plugin System | ❌ TODO | ~500 | Baja |
 
 ---
 
 ## Testing Strategy
 
-### Estado Actual (107 tests ✅)
+### Estado Actual (233 tests ✅, 6 skipped)
 
 | Módulo | Tests | Cobertura |
 |--------|-------|-----------|
 | `core/keyboard.py` | 25 | Scan codes, INPUT structures, hotkeys |
 | `core/layers.py` | 13 | Layer state, callbacks, LED colors |
 | `core/mapping_engine.py` | 11 | Config loading, resolution, multi-zone |
-| `core/throttle.py` | 9 | Rate limiting, debounce |
+| `core/throttle.py` | 13 | Rate limiting, debounce |
+| `core/obs_client.py` | 19 | Connection, reconnect, operations |
 | `feedback/led_colors.py` | 10 | Color offsets, note calculation |
 | `actions/hotkey.py` | 7 | Tap, hold modes, relative |
 | `actions/multi.py` | 14 | Sequence execution, toggle state |
 | `actions/volume.py` | 15 | Session cache, MIDI→volume mapping |
+| `actions/obs.py` | 19 | Scene, source, stream, record, mute |
+| `actions/sound.py` | 14 | WAV, MP3, stop, volume |
+| `actions/audio_switch.py` | 15 | Device listing, cycling, switch |
+| `actions/system.py` | 18 | System commands, URLs, clipboard |
+| `actions/conditional.py` | 15 | Conditions, recursion limits, cache |
+| `actions/profile_switcher.py` | 8 | Rule matching, auto-switch |
 
-### Tests Requeridos por Feature
+### Tests Requeridos por Feature Pendiente
 
 | Feature | Tests Nuevos | Estrategia |
 |---------|--------------|------------|
-| **System Commands** | ~5 | Mock `os.system`, `subprocess` |
-| **Open URL** | ~3 | Mock `webbrowser.open` |
-| **Clipboard Paste** | ~4 | Mock `pyperclip` |
-| **Conditional Actions** | ~15 | Mock `win32gui`, test cache, recursion limits |
-| **Profile Auto-Switch** | ~8 | Mock context, test rule matching |
-| **Audio Device Switch** | ~10 | Mock PolicyConfig COM, test cycling |
-| **OBS WebSocket** | ~12 | Mock `obsws-python`, test reconnect |
-| **Sound Playback** | ~5 | Mock audio playback library |
+| **Folders/Pages** | ~10 | Stack navigation, callbacks, integration |
+| **Counter** | ~8 | CRUD, persistence, callbacks |
+| **Twitch Integration** | ~10 | Mock twitchAPI, OAuth flow |
+| **Text-to-Speech** | ~5 | Mock pyttsx3 |
 | **Web UI Backend** | ~20 | FastAPI TestClient, WebSocket mocks |
 | **Web UI Frontend** | ~30 | Vue Test Utils, Vitest |
 | **Plugin System** | ~15 | Test loader, conflicts, validation |
