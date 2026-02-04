@@ -359,14 +359,37 @@ ACTION_SCHEMAS = {
 
 ### Complejidad: Alta ⚠️
 - Backend: Media (FastAPI es simple) ✅
-- **Problemas no considerados:**
-  - CORS configuration para desarrollo local
-  - Autenticación (al menos token básico para localhost)
-  - Hot-reload de config sin reiniciar app
-  - Comunicación bidireccional: backend ↔ frontend ↔ K2 core
-  - Build/bundle del frontend para distribución
-  - Servir frontend estático desde FastAPI en producción
-  - WebSocket reconnect en frontend
+
+### Decisiones de Diseño (Resueltas)
+| Pregunta | Decisión | Razón |
+|----------|----------|-------|
+| ¿Puerto? | **8420** (configurable) | Memorable: K-2 layout |
+| ¿CORS? | **localhost:\* permitido** | Solo desarrollo local |
+| ¿Autenticación? | **Sin auth (localhost only)** | Solo escucha 127.0.0.1 |
+| ¿Cuándo inicia? | **Siempre activo** | 5MB RAM trivial, simplicidad |
+| ¿Mobile responsive? | **No, desktop only** | K2 Deck es desktop, edge case |
+| ¿Framework CSS? | **TailwindCSS puro** | Control total, UI distintiva |
+| ¿Distribución frontend? | **Build → dist/ → FastAPI static** | Single bundle |
+| ¿WebSocket reconnect? | **reconnecting-websocket npm** | Exponential backoff |
+
+### Wireframe UI
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  K2 Deck                              [Profile: Default ▼]      │
+├─────────────────────────────────────────────────────────────────┤
+│  ┌─────────────────────────┐    ┌─────────────────────────────┐│
+│  │     K2 Visual Layout    │    │    Button/Encoder Config    ││
+│  │  [E1] [E2] [E3] [E4]   │    │  Name: [Volume Master    ]  ││
+│  │  [B1] [B2] [B3] [B4]   │    │  Action: [volume ▼        ] ││
+│  │  [B5] [B6] [B7] [B8]   │    │  Target: [master         ]  ││
+│  │  [B9] [B10][B11][B12]  │    │  [LED] Color: [green ▼]    ││
+│  │  [F1] [F2] [F3] [F4]   │    │         [Save] [Cancel]    ││
+│  └─────────────────────────┘    └─────────────────────────────┘│
+│  ┌─────────────────────────────────────────────────────────────┐│
+│  │ MIDI Monitor:  note_on ch=16 note=36 vel=127   [Clear]      ││
+│  └─────────────────────────────────────────────────────────────┘│
+└─────────────────────────────────────────────────────────────────┘
+```
 
 ### Estimación LOC Corregida
 - Backend: ~400 LOC ✅
@@ -473,21 +496,34 @@ class PluginLoader:
 
 ### Complejidad: Alta ⚠️
 - Cargar módulos Python dinámicamente ✅
-- **Problemas no considerados:**
-  - Seguridad: plugins pueden ejecutar código arbitrario
-  - Gestión de dependencias: ¿pip install automático? ¿venv separado?
-  - Versionado: compatibilidad plugin ↔ K2 Deck version
-  - Hot-reload de plugins sin reiniciar app
-  - Conflictos de nombres entre plugins
-  - Prioridad de acciones (plugin vs built-in)
-  - UI para gestionar plugins (enable/disable/configure)
-  - Documentación/template para crear plugins
+
+### Decisiones de Diseño (Resueltas)
+| Pregunta | Decisión | Razón |
+|----------|----------|-------|
+| ¿Gestión de deps? | **Check automático, no install** | Verificar imports, warning si faltan |
+| ¿Hot-reload? | **No, solo startup** | Evita estado inconsistente |
+| ¿Conflictos de nombres? | **Plugin override con warning** | Configurable en futuro |
+| ¿Errores en plugins? | **try/except, log, continuar** | Plugin buggy no crashea K2 |
+| ¿Versionado? | **min_k2deck_version en manifest** | Validar en load |
 
 ### Mitigaciones de Seguridad
 - Plugins solo desde directorio específico (~/.k2deck/plugins)
 - Warning en logs cuando plugin se carga
 - Opción para deshabilitar plugins en config
 - NO ejecutar pip automáticamente (documentar deps requeridas)
+
+### Plugin Manifest Schema (Nuevo)
+```json
+{
+  "name": "string (required)",
+  "version": "string (required)",
+  "author": "string (optional)",
+  "description": "string (optional)",
+  "min_k2deck_version": "string (optional, e.g. '0.3.0')",
+  "actions": { "action_name": "ClassName" },
+  "dependencies": ["pip_package_name"]
+}
+```
 
 ### Archivos a crear
 ```
@@ -755,11 +791,20 @@ def resolve(self, event: "MidiEvent") -> tuple[Action | None, dict | None]:
 
 ### Complejidad: Media ⚠️
 - Lógica simple de stack para navegación
-- **Consideraciones:**
-  - Integración con layers (folder per layer?)
-  - LED feedback para indicar folder activo
-  - Timeout para auto-exit de folder?
-  - Máximo depth de folders anidados (3)
+
+### Decisiones de Diseño (Resueltas)
+| Pregunta | Decisión | Razón |
+|----------|----------|-------|
+| ¿Folder per layer? | **No, folders son globales** | Simplifica implementación, estado único |
+| ¿Afecta encoders/faders? | **No, solo note_on (botones)** | Folders son "sub-menús de botones" |
+| ¿Timeout de folder? | **No** | LED feedback es suficiente indicación |
+| ¿LED behavior? | **Según config del folder** | Cada botón define su LED, más flexible |
+| ¿Max depth? | **3 niveles** | Enforceado en enter_folder() |
+
+### Notas de Implementación
+- Agregar `unregister_callback(callback)` al FolderManager
+- `enter_folder()` debe validar que folder existe en config
+- Log warning si folder no existe
 
 ### Archivos a crear
 - `k2deck/core/folders.py` (~100 LOC)
@@ -1164,6 +1209,15 @@ class TwitchChatAction(Action):
 - OAuth flow similar a Spotify
 - Async API requires careful integration
 - Rate limits to consider
+
+### Decisiones de Diseño (Resueltas)
+| Pregunta | Decisión | Razón |
+|----------|----------|-------|
+| ¿Async integration? | **ThreadPoolExecutor + asyncio.run()** | K2 Deck es sync, thread separado para async |
+| ¿OAuth flow? | **Flow completo (como Spotify)** | UX limpia, reusar patrón existente |
+| ¿Token storage? | **~/.k2deck/twitch_tokens.json** | Consistente con Spotify |
+| ¿Rate limiting? | **1 acción/segundo mínimo** | Twitch rate limits estrictos |
+| ¿Reconnect? | **Retry cada 30s (como OBS)** | Patrón probado |
 
 ### Archivos a crear
 - `k2deck/core/twitch_client.py` (~200 LOC)
