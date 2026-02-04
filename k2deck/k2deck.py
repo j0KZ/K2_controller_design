@@ -114,6 +114,21 @@ class K2DeckApp:
             logger.error("Failed to load config: %s", e)
             return False
 
+    def _init_spotify(self) -> None:
+        """Initialize Spotify API client (optional)."""
+        try:
+            from k2deck.core.spotify_client import spotify
+
+            if spotify.initialize():
+                logger.info("Spotify API connected")
+            else:
+                logger.info(
+                    "Spotify not configured - set SPOTIPY_CLIENT_ID and "
+                    "SPOTIPY_CLIENT_SECRET environment variables to enable"
+                )
+        except Exception as e:
+            logger.warning("Spotify init failed: %s", e)
+
     def _setup_midi(self) -> bool:
         """Initialize MIDI input and output."""
         if not self._mapping_engine:
@@ -329,6 +344,9 @@ class K2DeckApp:
         # Load config
         if not self._load_config():
             return 1
+
+        # Initialize Spotify (optional - app works without it)
+        self._init_spotify()
 
         # Setup MIDI
         if not self._setup_midi():

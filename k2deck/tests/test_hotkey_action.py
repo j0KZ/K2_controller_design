@@ -3,54 +3,12 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
-from pynput.keyboard import Key
 
 from k2deck.actions.hotkey import (
     HotkeyAction,
     HotkeyRelativeAction,
-    parse_key,
 )
 from k2deck.core.midi_listener import MidiEvent
-
-
-class TestParseKey:
-    """Tests for key parsing."""
-
-    def test_parse_modifier_keys(self):
-        """Should parse modifier keys."""
-        assert parse_key("ctrl") == Key.ctrl
-        assert parse_key("alt") == Key.alt
-        assert parse_key("shift") == Key.shift
-        assert parse_key("win") == Key.cmd
-
-    def test_parse_function_keys(self):
-        """Should parse function keys."""
-        assert parse_key("f1") == Key.f1
-        assert parse_key("f5") == Key.f5
-        assert parse_key("f12") == Key.f12
-
-    def test_parse_special_keys(self):
-        """Should parse special keys."""
-        assert parse_key("space") == Key.space
-        assert parse_key("enter") == Key.enter
-        assert parse_key("tab") == Key.tab
-        assert parse_key("escape") == Key.esc
-
-    def test_parse_media_keys(self):
-        """Should parse media keys."""
-        assert parse_key("media_play_pause") == Key.media_play_pause
-        assert parse_key("media_next") == Key.media_next
-        assert parse_key("volume_mute") == Key.media_volume_mute
-
-    def test_parse_single_char(self):
-        """Should parse single characters."""
-        key = parse_key("a")
-        assert key.char == "a"
-
-    def test_parse_case_insensitive(self):
-        """Should be case insensitive for special keys."""
-        assert parse_key("CTRL") == Key.ctrl
-        assert parse_key("Shift") == Key.shift
 
 
 class TestHotkeyAction:
@@ -107,6 +65,38 @@ class TestHotkeyAction:
             )
             action.execute(event)
             mock.assert_not_called()
+
+    def test_hold_mode_press_and_release(self):
+        """Should hold keys in hold mode and release on button release."""
+        config = {"name": "Test", "action": "hotkey", "keys": ["v"], "mode": "hold"}
+        action = HotkeyAction(config)
+
+        with patch("k2deck.core.keyboard.press_key") as mock_press, \
+             patch("k2deck.core.keyboard.release_key") as mock_release:
+
+            # Button press
+            press_event = MidiEvent(
+                type="note_on",
+                channel=16,
+                note=36,
+                cc=None,
+                value=127,
+                timestamp=0.0,
+            )
+            action.execute(press_event)
+            mock_press.assert_called_once_with("v")
+
+            # Button release (note_on with velocity 0)
+            release_event = MidiEvent(
+                type="note_on",
+                channel=16,
+                note=36,
+                cc=None,
+                value=0,
+                timestamp=0.1,
+            )
+            action.execute(release_event)
+            mock_release.assert_called_once_with("v")
 
 
 class TestHotkeyRelativeAction:

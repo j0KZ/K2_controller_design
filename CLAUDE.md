@@ -103,6 +103,27 @@ k2deck/
 - Test mapping resolution independently
 - Test action execution with mocked system calls
 
+#### ⚠️ DANGEROUS FUNCTION TESTS — MANDATORY RULES
+
+When testing functions that perform dangerous system operations (sleep, shutdown, restart, hibernate, delete, format, etc.):
+
+1. **ALWAYS run `pytest --collect-only` FIRST** on new test files to verify collection without execution
+2. **Use `patch.dict()` for class-level dicts** — If a class stores functions in a dict at import time (like `COMMANDS = {"sleep": sleep_computer}`), `@patch` decorators WON'T prevent execution. The dict captures the real function reference at import. Use:
+   ```python
+   with patch.dict(SystemAction.COMMANDS, {"sleep": MagicMock()}):
+       action.execute(event)
+   ```
+3. **Mark direct function tests with `@pytest.mark.skip`** — Tests that call dangerous functions directly (even with mocks) should be skipped by default:
+   ```python
+   @pytest.mark.skip(reason="Dangerous: could actually sleep the PC if mock fails")
+   @patch('k2deck.actions.system.ctypes')
+   def test_sleep_computer(self, mock_ctypes):
+       ...
+   ```
+4. **Ask for confirmation** before running tests involving: `ctypes.windll`, `subprocess.run` with shutdown/restart, file deletion, or any system power management
+
+**WHY:** A failed mock = real execution. A test once put the user's PC to sleep because `@patch('module.ctypes')` didn't intercept the already-captured function in `COMMANDS` dict.
+
 ## Key Commands
 
 ```bash

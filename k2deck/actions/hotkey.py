@@ -1,12 +1,15 @@
-"""Hotkey action - Keyboard simulation using pynput."""
+"""Hotkey action - Keyboard simulation using Windows SendInput API.
+
+Uses hardware scan codes for reliable key simulation that works with
+games and apps that ignore virtual key codes.
+"""
 
 import logging
 import time
 from typing import TYPE_CHECKING
 
-from pynput.keyboard import Controller, Key, KeyCode
-
 from k2deck.actions.base import Action
+from k2deck.core import keyboard
 
 if TYPE_CHECKING:
     from k2deck.core.midi_listener import MidiEvent
@@ -26,172 +29,134 @@ def _focus_target_app(target_app: str | None) -> bool:
         logger.warning("Window focus not available")
         return False
 
-# Keyboard controller singleton
-_keyboard = Controller()
 
-# Key name to pynput Key mapping
-KEY_MAP: dict[str, Key | str] = {
-    # Modifiers
-    "ctrl": Key.ctrl,
-    "control": Key.ctrl,
-    "alt": Key.alt,
-    "shift": Key.shift,
-    "win": Key.cmd,
-    "cmd": Key.cmd,
-    "super": Key.cmd,
-    # Special keys
-    "space": Key.space,
-    "enter": Key.enter,
-    "return": Key.enter,
-    "tab": Key.tab,
-    "escape": Key.esc,
-    "esc": Key.esc,
-    "backspace": Key.backspace,
-    "delete": Key.delete,
-    "del": Key.delete,
-    "insert": Key.insert,
-    "home": Key.home,
-    "end": Key.end,
-    "pageup": Key.page_up,
-    "page_up": Key.page_up,
-    "pagedown": Key.page_down,
-    "page_down": Key.page_down,
-    # Arrow keys
-    "up": Key.up,
-    "down": Key.down,
-    "left": Key.left,
-    "right": Key.right,
-    # Function keys
-    "f1": Key.f1,
-    "f2": Key.f2,
-    "f3": Key.f3,
-    "f4": Key.f4,
-    "f5": Key.f5,
-    "f6": Key.f6,
-    "f7": Key.f7,
-    "f8": Key.f8,
-    "f9": Key.f9,
-    "f10": Key.f10,
-    "f11": Key.f11,
-    "f12": Key.f12,
-    "f13": Key.f13,
-    "f14": Key.f14,
-    "f15": Key.f15,
-    "f16": Key.f16,
-    "f17": Key.f17,
-    "f18": Key.f18,
-    "f19": Key.f19,
-    "f20": Key.f20,
-    # Media keys
-    "media_play_pause": Key.media_play_pause,
-    "media_next": Key.media_next,
-    "media_previous": Key.media_previous,
-    "volume_up": Key.media_volume_up,
-    "volume_down": Key.media_volume_down,
-    "volume_mute": Key.media_volume_mute,
-    # Misc
-    "print_screen": Key.print_screen,
-    "scroll_lock": Key.scroll_lock,
-    "pause": Key.pause,
-    "caps_lock": Key.caps_lock,
-    "num_lock": Key.num_lock,
-    "menu": Key.menu,
-}
+def release_all_modifiers() -> None:
+    """Release all modifier keys to prevent stuck keys.
 
-
-def parse_key(key_name: str) -> Key | KeyCode:
-    """Convert key name string to pynput key.
-
-    Args:
-        key_name: Key name (e.g., "ctrl", "a", "f5").
-
-    Returns:
-        pynput Key or KeyCode.
+    This is important for multi-action sequences where modifiers
+    might get stuck between actions (especially Win key).
     """
-    key_lower = key_name.lower()
-
-    # Check special keys
-    if key_lower in KEY_MAP:
-        key = KEY_MAP[key_lower]
-        if isinstance(key, str):
-            return KeyCode.from_char(key)
-        return key
-
-    # Single character
-    if len(key_name) == 1:
-        return KeyCode.from_char(key_name)
-
-    # Try as character code (for special chars)
-    logger.warning("Unknown key: %s, treating as character", key_name)
-    return KeyCode.from_char(key_name[0])
+    keyboard.release_all_modifiers()
 
 
-def execute_hotkey(keys: list[str]) -> None:
+def execute_hotkey(keys: list[str], release_after: bool = True) -> None:
     """Execute a keyboard hotkey combination.
+
+    Uses Windows SendInput API with hardware scan codes for reliable
+    key simulation.
 
     Args:
         keys: List of key names to press simultaneously.
+        release_after: If True, release all modifiers after execution.
     """
-    parsed_keys = [parse_key(k) for k in keys]
-
-    # Separate modifiers and regular keys
-    modifiers = []
-    regular = []
-    for k in parsed_keys:
-        if isinstance(k, Key) and k in (Key.ctrl, Key.alt, Key.shift, Key.cmd):
-            modifiers.append(k)
-        else:
-            regular.append(k)
+    if not keys:
+        return
 
     try:
-        # Press modifiers first
-        for mod in modifiers:
-            _keyboard.press(mod)
+        keyboard.execute_hotkey(keys, hold_ms=15, between_ms=10)
 
-        # Press and release regular keys
-        for key in regular:
-            _keyboard.press(key)
-            _keyboard.release(key)
-
-        # Release modifiers in reverse order
-        for mod in reversed(modifiers):
-            _keyboard.release(mod)
+        # Extra safety: release ALL modifiers to prevent stuck keys
+        if release_after:
+            keyboard.release_all_modifiers()
 
         logger.debug("Executed hotkey: %s", keys)
     except Exception as e:
         logger.error("Failed to execute hotkey %s: %s", keys, e)
-        # Make sure to release any held keys
-        for mod in modifiers:
-            try:
-                _keyboard.release(mod)
-            except Exception:
-                pass
+        # Make sure to release ALL held keys
+        keyboard.release_all_keys()
 
 
 class HotkeyAction(Action):
-    """Action that simulates keyboard hotkeys."""
+    """Action that simulates keyboard hotkeys.
+
+    Config options:
+    - keys: List of key names (e.g., ["ctrl", "shift", "s"])
+    - mode: "tap" (default), "hold", or "toggle"
+      - tap: Press and release immediately (standard hotkey)
+      - hold: Hold while button is pressed, release on button release
+      - toggle: First press holds, second press releases
+    """
+
+    _toggle_states: dict[int, bool] = {}  # Track toggle state per button
 
     def execute(self, event: "MidiEvent") -> None:
-        """Execute the hotkey.
+        """Execute the hotkey based on mode."""
+        keys = self.config.get("keys", [])
+        if not keys:
+            return
 
-        Only triggers on Note On with velocity > 0.
-        """
-        # Only trigger on actual press (Note On with velocity)
-        if event.type == "note_on" and event.value > 0:
-            keys = self.config.get("keys", [])
-            if keys:
-                try:
-                    execute_hotkey(keys)
-                except Exception as e:
-                    logger.error("HotkeyAction error: %s", e)
+        mode = self.config.get("mode", "tap")
+
+        if event.type == "note_on":
+            if event.value > 0:
+                # Button pressed
+                if mode == "tap":
+                    self._execute_tap(keys)
+                elif mode == "hold":
+                    self._execute_hold_start(keys, event.note)
+                elif mode == "toggle":
+                    self._execute_toggle(keys, event.note)
+            else:
+                # Button released (note_on with velocity 0)
+                if mode == "hold":
+                    self._execute_hold_end(keys, event.note)
+
+        elif event.type == "note_off":
+            # Button released
+            if mode == "hold":
+                self._execute_hold_end(keys, event.note)
+
         elif event.type == "cc":
             # For CC-triggered hotkeys (like media keys on knobs)
-            keys = self.config.get("keys", [])
-            if keys:
-                try:
-                    execute_hotkey(keys)
-                except Exception as e:
-                    logger.error("HotkeyAction CC error: %s", e)
+            self._execute_tap(keys)
+
+    def _execute_tap(self, keys: list[str]) -> None:
+        """Standard tap: press and release immediately."""
+        try:
+            execute_hotkey(keys)
+        except Exception as e:
+            logger.error("HotkeyAction tap error: %s", e)
+
+    def _execute_hold_start(self, keys: list[str], note: int) -> None:
+        """Start holding keys."""
+        try:
+            for key in keys:
+                keyboard.press_key(key)
+            logger.debug("Holding keys: %s", keys)
+        except Exception as e:
+            logger.error("HotkeyAction hold start error: %s", e)
+
+    def _execute_hold_end(self, keys: list[str], note: int) -> None:
+        """Release held keys."""
+        try:
+            for key in reversed(keys):
+                keyboard.release_key(key)
+            logger.debug("Released keys: %s", keys)
+        except Exception as e:
+            logger.error("HotkeyAction hold end error: %s", e)
+            keyboard.release_all_keys()
+
+    def _execute_toggle(self, keys: list[str], note: int) -> None:
+        """Toggle: first press holds, second press releases."""
+        current_state = self._toggle_states.get(note, False)
+
+        try:
+            if current_state:
+                # Currently held, release
+                for key in reversed(keys):
+                    keyboard.release_key(key)
+                self._toggle_states[note] = False
+                logger.debug("Toggle released: %s", keys)
+            else:
+                # Not held, press and hold
+                for key in keys:
+                    keyboard.press_key(key)
+                self._toggle_states[note] = True
+                logger.debug("Toggle pressed: %s", keys)
+        except Exception as e:
+            logger.error("HotkeyAction toggle error: %s", e)
+            keyboard.release_all_keys()
+            self._toggle_states[note] = False
 
 
 class HotkeyRelativeAction(Action):

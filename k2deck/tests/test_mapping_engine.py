@@ -232,3 +232,102 @@ class TestMappingEngine:
             assert sorted(notes) == [36, 37, 40]
         finally:
             path.unlink()
+
+    def test_multi_zone_config(self):
+        """Should load multi-zone (dual K2) config."""
+        config = {
+            "profile_name": "dual_k2",
+            "zones": {
+                "k2_main": {
+                    "channel": 16,
+                    "mappings": {
+                        "note_on": {
+                            "36": {"name": "Main Button", "action": "hotkey", "keys": ["a"]}
+                        }
+                    }
+                },
+                "k2_secondary": {
+                    "channel": 15,
+                    "mappings": {
+                        "note_on": {
+                            "36": {"name": "Secondary Button", "action": "hotkey", "keys": ["b"]}
+                        }
+                    }
+                }
+            }
+        }
+        path = create_temp_config(config)
+        try:
+            engine = MappingEngine(path)
+            assert 16 in engine.midi_channels
+            assert 15 in engine.midi_channels
+            assert len(engine.midi_channels) == 2
+        finally:
+            path.unlink()
+
+    def test_multi_zone_resolve_different_channels(self):
+        """Should resolve events from different channels to different mappings."""
+        config = {
+            "profile_name": "dual_k2",
+            "zones": {
+                "k2_main": {
+                    "channel": 16,
+                    "mappings": {
+                        "note_on": {
+                            "36": {"name": "Main Button", "action": "hotkey", "keys": ["a"]}
+                        }
+                    }
+                },
+                "k2_secondary": {
+                    "channel": 15,
+                    "mappings": {
+                        "note_on": {
+                            "36": {"name": "Secondary Button", "action": "hotkey", "keys": ["b"]}
+                        }
+                    }
+                }
+            }
+        }
+        path = create_temp_config(config)
+        try:
+            engine = MappingEngine(path)
+
+            # Event from channel 16
+            event_main = MidiEvent(
+                type="note_on",
+                channel=16,
+                note=36,
+                cc=None,
+                value=127,
+                timestamp=0.0,
+            )
+            action, mapping = engine.resolve(event_main)
+            assert action is not None
+            assert action.name == "Main Button"
+
+            # Event from channel 15
+            event_secondary = MidiEvent(
+                type="note_on",
+                channel=15,
+                note=36,
+                cc=None,
+                value=127,
+                timestamp=0.0,
+            )
+            action, mapping = engine.resolve(event_secondary)
+            assert action is not None
+            assert action.name == "Secondary Button"
+
+            # Event from unconfigured channel 14
+            event_other = MidiEvent(
+                type="note_on",
+                channel=14,
+                note=36,
+                cc=None,
+                value=127,
+                timestamp=0.0,
+            )
+            action, mapping = engine.resolve(event_other)
+            assert action is None
+        finally:
+            path.unlink()

@@ -1,6 +1,7 @@
 {
   "profile_name": "default",
   "midi_channel": 16,
+  "_note": "K2 #1 = channel 16, K2 #2 = channel 15 (mido shows 15/14 but +1 for 1-indexed)",
   "midi_device": "XONE:K2",
 
   "led_color_offsets": {
@@ -19,8 +20,7 @@
       "_comment": "=== ROW A (top buttons): 36-39 ===",
       "36": {
         "name": "Spotify Play/Pause",
-        "action": "media_key",
-        "keys": ["media_play_pause"],
+        "action": "spotify_play_pause",
         "led": { "color": "green", "mode": "toggle", "off_color": "amber" }
       },
       "37": {
@@ -44,8 +44,7 @@
       "_comment2": "=== ROW B: 32-35 ===",
       "32": {
         "name": "Spotify Next",
-        "action": "media_key",
-        "keys": ["media_next"]
+        "action": "spotify_next"
       },
       "33": {
         "name": "Discord Deafen",
@@ -68,8 +67,7 @@
       "_comment3": "=== ROW C: 28-31 ===",
       "28": {
         "name": "Spotify Prev",
-        "action": "media_key",
-        "keys": ["media_previous"]
+        "action": "spotify_previous"
       },
       "29": {
         "name": "Discord+Wispr Toggle",
@@ -79,10 +77,10 @@
           ["ctrl", "win", "space"]
         ],
         "off_sequence": [
-          ["ctrl", "win"],
+          ["ctrl", "win", "space"],
           ["ctrl", "alt", "m"]
         ],
-        "delay_ms": 100,
+        "delay_ms": 200,
         "led": { "color": "red", "mode": "toggle", "off_color": "green" }
       },
       "30": {
@@ -100,8 +98,8 @@
       "_comment4": "=== ROW D (bottom): 24-27 ===",
       "24": {
         "name": "Spotify Shuffle",
-        "action": "noop",
-        "_note": "Phase 2: requires Spotify API"
+        "action": "spotify_shuffle",
+        "led": { "color": "green", "mode": "toggle" }
       },
       "25": {
         "name": "Discord DnD",
@@ -122,8 +120,8 @@
       "_comment5": "=== TOP ENCODER PUSHES: 52-55 ===",
       "52": {
         "name": "Spotify Like",
-        "action": "noop",
-        "_note": "Phase 2: requires Spotify API"
+        "action": "spotify_like",
+        "led": { "color": "green", "mode": "toggle" }
       },
       "53": {
         "name": "Discord Mute (Enc)",
@@ -160,8 +158,7 @@
       "_comment": "=== FADERS: CC 16-19 ===",
       "16": {
         "name": "Spotify Volume",
-        "action": "volume",
-        "target_process": "Spotify.exe"
+        "action": "spotify_volume"
       },
       "17": {
         "name": "Discord Volume",
@@ -183,10 +180,9 @@
     "cc_relative": {
       "_comment": "=== TOP ENCODERS (rotation): CC 0-3 ===",
       "0": {
-        "name": "Spotify Prev/Next",
-        "action": "hotkey_relative",
-        "cw": ["media_next"],
-        "ccw": ["media_previous"]
+        "name": "Spotify Seek",
+        "action": "spotify_seek",
+        "step_ms": 5000
       },
       "1": {
         "name": "Discord Scroll",

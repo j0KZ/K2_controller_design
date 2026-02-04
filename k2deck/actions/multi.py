@@ -1,11 +1,15 @@
-"""Multi-action - Execute sequences of hotkeys with toggle support."""
+"""Multi-action - Execute sequences of hotkeys with toggle support.
+
+Uses Windows SendInput API with hardware scan codes for reliable
+execution of complex multi-step macro sequences.
+"""
 
 import logging
 import time
 from typing import TYPE_CHECKING
 
 from k2deck.actions.base import Action
-from k2deck.actions.hotkey import execute_hotkey
+from k2deck.core import keyboard
 
 if TYPE_CHECKING:
     from k2deck.core.midi_listener import MidiEvent
@@ -15,6 +19,8 @@ logger = logging.getLogger(__name__)
 
 # Global state tracker for toggle actions (keyed by button note)
 _toggle_states: dict[int, bool] = {}
+_last_toggle_time: dict[int, float] = {}
+_toggle_debounce_ms: float = 300  # Minimum time between toggle presses
 
 
 class MultiAction(Action):
@@ -44,17 +50,23 @@ class MultiAction(Action):
         name = self.config.get("name", "multi")
         logger.info("Executing multi-action: %s (%d steps)", name, len(sequence))
 
+        # Release all modifiers first to prevent stuck keys
+        keyboard.release_all_modifiers()
+        time.sleep(0.05)
+
         for i, keys in enumerate(sequence):
             if keys:
                 try:
-                    execute_hotkey(keys)
+                    keyboard.execute_hotkey(keys, hold_ms=20, between_ms=10)
                     logger.debug("Multi step %d: %s", i + 1, keys)
                 except Exception as e:
                     logger.error("Multi step %d failed: %s", i + 1, e)
 
-                # Delay between actions (except after last)
-                if i < len(sequence) - 1:
-                    time.sleep(delay_sec)
+                # Delay after each action
+                time.sleep(delay_sec)
+
+        # Final safety: release all modifiers
+        keyboard.release_all_modifiers()
 
 
 class MultiToggleAction(Action):
@@ -87,6 +99,15 @@ class MultiToggleAction(Action):
             return
 
         note = event.note
+
+        # Debounce: prevent rapid double-presses
+        now = time.time() * 1000
+        last_time = _last_toggle_time.get(note, 0)
+        if now - last_time < _toggle_debounce_ms:
+            logger.debug("Multi-toggle debounced (too fast)")
+            return
+        _last_toggle_time[note] = now
+
         current_state = _toggle_states.get(note, False)
 
         # Select sequence based on state
@@ -105,19 +126,26 @@ class MultiToggleAction(Action):
         delay_sec = delay_ms / 1000.0
 
         name = self.config.get("name", "multi_toggle")
-        logger.info("Multi-toggle %s → %s (%d steps)", name, state_name, len(sequence))
+        logger.info("Multi-toggle %s: was=%s → now=%s (%d steps)",
+                    name, "ON" if current_state else "OFF", state_name, len(sequence))
+
+        # IMPORTANT: Release all modifiers first to prevent stuck keys
+        keyboard.release_all_modifiers()
+        time.sleep(0.05)
 
         for i, keys in enumerate(sequence):
             if keys:
                 try:
-                    execute_hotkey(keys)
-                    logger.debug("Toggle step %d: %s", i + 1, keys)
+                    keyboard.execute_hotkey(keys, hold_ms=25, between_ms=15)
+                    logger.info("  Step %d: %s", i + 1, keys)
                 except Exception as e:
-                    logger.error("Toggle step %d failed: %s", i + 1, e)
+                    logger.error("  Step %d FAILED: %s", i + 1, e)
 
-                # Delay between actions (except after last)
-                if i < len(sequence) - 1:
-                    time.sleep(delay_sec)
+                # Delay after EVERY action to ensure it registers
+                time.sleep(delay_sec)
+
+        # Final safety: release all modifiers again
+        keyboard.release_all_modifiers()
 
         # Update state
         _toggle_states[note] = new_state

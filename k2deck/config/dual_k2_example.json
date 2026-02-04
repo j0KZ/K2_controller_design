@@ -1,0 +1,172 @@
+{
+  "profile_name": "dual_k2",
+  "midi_device": "XONE:K2",
+
+  "_comment": "Dual K2 setup - both controllers work as one extended unit",
+
+  "led_color_offsets": {
+    "red": 0,
+    "amber": 36,
+    "green": 72
+  },
+
+  "zones": {
+    "_comment": "Each K2 is a zone with its own channel and mappings",
+
+    "k2_main": {
+      "channel": 16,
+      "_description": "Main K2 - connected via USB (mido channel 15 = 1-indexed 16)",
+      "mappings": {
+        "note_on": {
+          "_comment": "=== ROW A (top buttons): 36-39 ===",
+          "36": {
+            "name": "Spotify Play/Pause",
+            "action": "spotify_play_pause",
+            "led": { "color": "green", "mode": "toggle", "off_color": "amber" }
+          },
+          "37": {
+            "name": "Discord Mute",
+            "action": "hotkey",
+            "keys": ["ctrl", "alt", "m"],
+            "led": { "color": "red", "mode": "toggle", "off_color": "green" }
+          },
+          "38": {
+            "name": "VS Code Run/Debug",
+            "action": "hotkey",
+            "keys": ["f5"],
+            "led": { "color": "green", "mode": "flash", "flash_count": 3 }
+          },
+          "39": {
+            "name": "Brave Refresh",
+            "action": "hotkey",
+            "keys": ["f5"]
+          }
+        },
+        "cc_absolute": {
+          "_comment": "=== FADERS: CC 16-19 ===",
+          "16": {
+            "name": "Spotify Volume",
+            "action": "spotify_volume"
+          },
+          "17": {
+            "name": "Discord Volume",
+            "action": "volume",
+            "target_process": "Discord.exe"
+          },
+          "18": {
+            "name": "VS Code Volume",
+            "action": "volume",
+            "target_process": "Code.exe"
+          },
+          "19": {
+            "name": "Master Volume",
+            "action": "volume",
+            "target_process": "__master__"
+          }
+        },
+        "cc_relative": {
+          "0": {
+            "name": "Spotify Seek",
+            "action": "spotify_seek",
+            "step_ms": 5000
+          }
+        }
+      }
+    },
+
+    "k2_secondary": {
+      "channel": 15,
+      "_description": "Secondary K2 - second in X-Link chain (mido channel 14 = 1-indexed 15)",
+      "mappings": {
+        "note_on": {
+          "_comment": "=== Additional functions on second K2 ===",
+          "36": {
+            "name": "OBS Scene 1",
+            "action": "hotkey",
+            "keys": ["f13"],
+            "led": { "color": "green" }
+          },
+          "37": {
+            "name": "OBS Scene 2",
+            "action": "hotkey",
+            "keys": ["f14"],
+            "led": { "color": "amber" }
+          },
+          "38": {
+            "name": "OBS Scene 3",
+            "action": "hotkey",
+            "keys": ["f15"],
+            "led": { "color": "red" }
+          },
+          "39": {
+            "name": "OBS Start/Stop Stream",
+            "action": "hotkey",
+            "keys": ["f16"],
+            "led": { "color": "red", "mode": "toggle" }
+          },
+
+          "_comment2": "=== ROW B ===",
+          "32": {
+            "name": "Browser Tab 1",
+            "action": "hotkey",
+            "keys": ["ctrl", "1"]
+          },
+          "33": {
+            "name": "Browser Tab 2",
+            "action": "hotkey",
+            "keys": ["ctrl", "2"]
+          },
+          "34": {
+            "name": "Browser Tab 3",
+            "action": "hotkey",
+            "keys": ["ctrl", "3"]
+          },
+          "35": {
+            "name": "Browser Tab 4",
+            "action": "hotkey",
+            "keys": ["ctrl", "4"]
+          }
+        },
+        "cc_absolute": {
+          "_comment": "=== Second K2 faders for other apps ===",
+          "16": {
+            "name": "OBS Volume",
+            "action": "volume",
+            "target_process": "obs64.exe"
+          },
+          "17": {
+            "name": "Brave Volume",
+            "action": "volume",
+            "target_process": "brave.exe"
+          },
+          "18": {
+            "name": "Game Volume",
+            "action": "volume",
+            "target_process": "game.exe"
+          },
+          "19": {
+            "name": "System Sounds",
+            "action": "volume",
+            "target_process": "__master__"
+          }
+        },
+        "cc_relative": {
+          "0": {
+            "name": "Zoom In/Out",
+            "action": "hotkey_relative",
+            "cw": ["ctrl", "+"],
+            "ccw": ["ctrl", "-"]
+          }
+        }
+      }
+    }
+  },
+
+  "led_defaults": {
+    "on_start": [
+      { "note": 36, "color": "amber" }
+    ],
+    "on_connect": "all_off",
+    "startup_animation": true
+  }
+}
