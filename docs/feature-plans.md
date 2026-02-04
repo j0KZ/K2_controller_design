@@ -360,17 +360,24 @@ ACTION_SCHEMAS = {
 ### Complejidad: Alta ⚠️
 - Backend: Media (FastAPI es simple) ✅
 
-### Decisiones de Diseño (Resueltas)
+### Decisiones de Diseño (CONFIRMADAS)
 | Pregunta | Decisión | Razón |
 |----------|----------|-------|
 | ¿Puerto? | **8420** (configurable) | Memorable: K-2 layout |
 | ¿CORS? | **localhost:\* permitido** | Solo desarrollo local |
-| ¿Autenticación? | **Sin auth (localhost only)** | Solo escucha 127.0.0.1 |
+| ¿Autenticación? | **Sin auth (localhost only)** | Como Stream Deck, solo escucha 127.0.0.1 |
 | ¿Cuándo inicia? | **Siempre activo** | 5MB RAM trivial, simplicidad |
-| ¿Mobile responsive? | **No, desktop only** | K2 Deck es desktop, edge case |
-| ¿Framework CSS? | **TailwindCSS puro** | Control total, UI distintiva |
+| ¿Mobile responsive? | **No, desktop only** | Optimizado para desktop |
+| ¿Framework CSS? | **TailwindCSS** | Estilo similar a Stream Deck para UX familiar |
 | ¿Distribución frontend? | **Build → dist/ → FastAPI static** | Single bundle |
 | ¿WebSocket reconnect? | **reconnecting-websocket npm** | Exponential backoff |
+
+### Referencia de Diseño: Stream Deck
+- Layout similar: controller visual a la izquierda, config a la derecha
+- Colores oscuros (dark mode)
+- Botones con bordes redondeados
+- Panel de acciones con iconos
+- MIDI monitor en la parte inferior
 
 ### Wireframe UI
 ```
@@ -497,11 +504,11 @@ class PluginLoader:
 ### Complejidad: Alta ⚠️
 - Cargar módulos Python dinámicamente ✅
 
-### Decisiones de Diseño (Resueltas)
+### Decisiones de Diseño (CONFIRMADAS)
 | Pregunta | Decisión | Razón |
 |----------|----------|-------|
-| ¿Gestión de deps? | **Check automático, no install** | Verificar imports, warning si faltan |
-| ¿Hot-reload? | **No, solo startup** | Evita estado inconsistente |
+| ¿Gestión de deps? | **Check automático, no install** | Verificar imports, warning claro si faltan |
+| ¿Hot-reload? | **No, solo startup** | Evita estado inconsistente, reinicio no es problema |
 | ¿Conflictos de nombres? | **Plugin override con warning** | Configurable en futuro |
 | ¿Errores en plugins? | **try/except, log, continuar** | Plugin buggy no crashea K2 |
 | ¿Versionado? | **min_k2deck_version en manifest** | Validar en load |
@@ -792,12 +799,12 @@ def resolve(self, event: "MidiEvent") -> tuple[Action | None, dict | None]:
 ### Complejidad: Media ⚠️
 - Lógica simple de stack para navegación
 
-### Decisiones de Diseño (Resueltas)
+### Decisiones de Diseño (CONFIRMADAS)
 | Pregunta | Decisión | Razón |
 |----------|----------|-------|
 | ¿Folder per layer? | **No, folders son globales** | Simplifica implementación, estado único |
 | ¿Afecta encoders/faders? | **No, solo note_on (botones)** | Folders son "sub-menús de botones" |
-| ¿Timeout de folder? | **No** | LED feedback es suficiente indicación |
+| ¿Timeout de folder? | **No** | Layer button cambia color (3 colores = 3 layers), LED feedback suficiente |
 | ¿LED behavior? | **Según config del folder** | Cada botón define su LED, más flexible |
 | ¿Max depth? | **3 niveles** | Enforceado en enter_folder() |
 
@@ -1210,11 +1217,11 @@ class TwitchChatAction(Action):
 - Async API requires careful integration
 - Rate limits to consider
 
-### Decisiones de Diseño (Resueltas)
+### Decisiones de Diseño (CONFIRMADAS)
 | Pregunta | Decisión | Razón |
 |----------|----------|-------|
 | ¿Async integration? | **ThreadPoolExecutor + asyncio.run()** | K2 Deck es sync, thread separado para async |
-| ¿OAuth flow? | **Flow completo (como Spotify)** | UX limpia, reusar patrón existente |
+| ¿OAuth flow? | **Flow completo (como Spotify)** | UX limpia, browser popup, callback server |
 | ¿Token storage? | **~/.k2deck/twitch_tokens.json** | Consistente con Spotify |
 | ¿Rate limiting? | **1 acción/segundo mínimo** | Twitch rate limits estrictos |
 | ¿Reconnect? | **Retry cada 30s (como OBS)** | Patrón probado |
