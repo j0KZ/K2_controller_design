@@ -1337,19 +1337,19 @@ class TTSAction(Action):
 | 3 | Conditional Actions | ✅ DONE | ~300 | - |
 | 4 | Sound Playback | ✅ DONE | ~170 | - |
 | 5 | Profile Auto-Switch | ✅ DONE | ~150 | - |
-| 6 | **Counter** | ✅ DONE | ~130 | - |
-| 7 | **Text-to-Speech** | ✅ DONE | ~90 | - |
-| 8 | **Folders/Pages** | ❌ TODO | ~190 | Alta |
-| 9 | **Twitch Integration** | ❌ TODO | ~300 | Media |
-| 10 | Web UI Backend | ❌ TODO | ~600 | Alta |
-| 11 | Web UI Frontend | ❌ TODO | ~3000 | Alta |
-| 12 | Plugin System | ❌ TODO | ~500 | Baja |
+| 6 | Counter | ✅ DONE | ~130 | - |
+| 7 | Text-to-Speech | ✅ DONE | ~90 | - |
+| 8 | Folders/Pages | ✅ DONE | ~545 | - |
+| 9 | Twitch Integration | ✅ DONE | ~570 | - |
+| 10 | **Web UI Backend** | ❌ TODO | ~600 | Alta |
+| 11 | **Web UI Frontend** | ❌ TODO | ~3000 | Alta |
+| 12 | **Plugin System** | ❌ TODO | ~500 | Baja |
 
 ---
 
 ## Testing Strategy
 
-### Estado Actual (262 tests ✅, 6 skipped)
+### Estado Actual (309 tests ✅, 7 skipped)
 
 | Módulo | Tests | Cobertura |
 |--------|-------|-----------|
@@ -1370,13 +1370,13 @@ class TTSAction(Action):
 | `actions/profile_switcher.py` | 8 | Rule matching, auto-switch |
 | `actions/counter.py` | 22 | CRUD, persistence, callbacks |
 | `actions/tts.py` | 7 | Mock pyttsx3, engine config |
+| `core/folders.py` | 23 | Stack navigation, callbacks, max depth |
+| `actions/twitch.py` | 24 | Mock twitchAPI, actions, rate limiting |
 
 ### Tests Requeridos por Feature Pendiente
 
 | Feature | Tests Nuevos | Estrategia |
 |---------|--------------|------------|
-| **Folders/Pages** | ~10 | Stack navigation, callbacks, integration |
-| **Twitch Integration** | ~10 | Mock twitchAPI, OAuth flow |
 | **Web UI Backend** | ~20 | FastAPI TestClient, WebSocket mocks |
 | **Web UI Frontend** | ~30 | Vue Test Utils, Vitest |
 | **Plugin System** | ~15 | Test loader, conflicts, validation |
