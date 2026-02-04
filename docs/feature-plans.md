@@ -552,6 +552,8 @@ k2deck/plugins/
 | Window focus/launch | ✅ | ✅ | `focus`, `launch` |
 | Per-app volume | Plugin | ✅ | `volume` action |
 | Spotify | Plugin ($5) | ✅ | **Gratis** - Full API |
+| Counter | ✅ | ✅ | `counter` action |
+| Text-to-Speech | ✅ | ✅ | `tts` action (Windows SAPI) |
 
 ### 🚀 K2 Deck Exclusivo (Mejor que Stream Deck)
 
@@ -567,9 +569,7 @@ k2deck/plugins/
 | Feature | Stream Deck | Prioridad | Plan |
 |---------|-------------|-----------|------|
 | Folders/Sub-pages | ✅ | Alta | Ver §6 |
-| Counter | ✅ | Media | Ver §7 |
 | Twitch integration | ✅ | Media | Ver §8 |
-| Text-to-Speech | ✅ | Baja | Ver §9 |
 | Web UI | ✅ | Alta | Ver §4 (existente) |
 | Plugin System | ✅ | Baja | Ver §5 (existente) |
 
@@ -1276,10 +1276,10 @@ class TTSAction(Action):
 | 3 | Conditional Actions | ✅ DONE | ~300 | - |
 | 4 | Sound Playback | ✅ DONE | ~170 | - |
 | 5 | Profile Auto-Switch | ✅ DONE | ~150 | - |
-| 6 | **Folders/Pages** | ❌ TODO | ~190 | Alta |
-| 7 | **Counter** | ❌ TODO | ~130 | Media |
-| 8 | **Twitch Integration** | ❌ TODO | ~300 | Media |
-| 9 | **Text-to-Speech** | ❌ TODO | ~50 | Baja |
+| 6 | **Counter** | ✅ DONE | ~130 | - |
+| 7 | **Text-to-Speech** | ✅ DONE | ~90 | - |
+| 8 | **Folders/Pages** | ❌ TODO | ~190 | Alta |
+| 9 | **Twitch Integration** | ❌ TODO | ~300 | Media |
 | 10 | Web UI Backend | ❌ TODO | ~600 | Alta |
 | 11 | Web UI Frontend | ❌ TODO | ~3000 | Alta |
 | 12 | Plugin System | ❌ TODO | ~500 | Baja |
@@ -1288,7 +1288,7 @@ class TTSAction(Action):
 
 ## Testing Strategy
 
-### Estado Actual (233 tests ✅, 6 skipped)
+### Estado Actual (262 tests ✅, 6 skipped)
 
 | Módulo | Tests | Cobertura |
 |--------|-------|-----------|
@@ -1307,15 +1307,15 @@ class TTSAction(Action):
 | `actions/system.py` | 18 | System commands, URLs, clipboard |
 | `actions/conditional.py` | 15 | Conditions, recursion limits, cache |
 | `actions/profile_switcher.py` | 8 | Rule matching, auto-switch |
+| `actions/counter.py` | 22 | CRUD, persistence, callbacks |
+| `actions/tts.py` | 7 | Mock pyttsx3, engine config |
 
 ### Tests Requeridos por Feature Pendiente
 
 | Feature | Tests Nuevos | Estrategia |
 |---------|--------------|------------|
 | **Folders/Pages** | ~10 | Stack navigation, callbacks, integration |
-| **Counter** | ~8 | CRUD, persistence, callbacks |
 | **Twitch Integration** | ~10 | Mock twitchAPI, OAuth flow |
-| **Text-to-Speech** | ~5 | Mock pyttsx3 |
 | **Web UI Backend** | ~20 | FastAPI TestClient, WebSocket mocks |
 | **Web UI Frontend** | ~30 | Vue Test Utils, Vitest |
 | **Plugin System** | ~15 | Test loader, conflicts, validation |
