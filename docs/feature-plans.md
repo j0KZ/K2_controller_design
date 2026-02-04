@@ -749,6 +749,314 @@ k2deck/plugins/
 └── validator.py    # Validate plugin manifest
 ```
 
+### Adaptación de Plugins Externos (StreamController, etc.)
+
+Para poder adaptar plugins de otros sistemas (como StreamController), nuestro Plugin System incluye:
+
+#### Capa de Compatibilidad
+
+```python
+# k2deck/plugins/adapters/streamcontroller.py
+class StreamControllerAdapter:
+    """Adapter to convert StreamController plugins to K2 Deck format."""
+
+    def __init__(self, sc_plugin_path: Path):
+        self.sc_plugin = self._load_sc_plugin(sc_plugin_path)
+
+    def to_k2_action(self, sc_action_class) -> type[Action]:
+        """Convert StreamController ActionBase to K2 Deck Action."""
+
+        class AdaptedAction(Action):
+            def __init__(self, config: dict):
+                super().__init__(config)
+                self._sc_action = sc_action_class()
+                # Map SC settings to K2 config
+
+            def execute(self, event: MidiEvent) -> None:
+                if event.type == "note_on" and event.value > 0:
+                    # SC uses on_key_down
+                    self._sc_action.on_key_down()
+                elif event.type == "note_on" and event.value == 0:
+                    # SC uses on_key_up
+                    self._sc_action.on_key_up()
+
+        return AdaptedAction
+```
+
+#### Mapeo de Conceptos SC → K2
+
+| StreamController | K2 Deck | Notas |
+|------------------|---------|-------|
+| `ActionBase` | `Action` | Clase base de acciones |
+| `on_key_down()` | `execute(event)` donde `event.value > 0` | Press |
+| `on_key_up()` | `execute(event)` donde `event.value == 0` | Release |
+| `on_tick()` | No soportado (sin LCD) | Timer interno |
+| `get_settings()` | `config: dict` en constructor | JSON config |
+| `set_media(image)` | `led_manager.set_color()` | Sin LCD, solo LEDs |
+| `PluginBase` | `K2Plugin` | Clase base de plugins |
+| `BackendBase` | No necesario | Integrado en Action |
+
+#### Plugins de StreamController Adaptables
+
+| Plugin SC | Adaptable | Razón |
+|-----------|-----------|-------|
+| OBSPlugin | ⚠️ Ya tenemos | Usamos misma lib (obsws-python) |
+| MediaPlugin | ⚠️ Ya tenemos | Nuestro es mejor (Spotify API) |
+| VolumeMixer | ⚠️ Ya tenemos | pycaw |
+| AudioSwitcher | ⚠️ Ya tenemos | PolicyConfig |
+| Counter | ⚠️ Ya tenemos | Más features |
+| Clocks | ✅ **Adaptar** | Timer/Countdown |
+| Speedtest | ✅ Adaptar | Nuevo |
+| Weather | ✅ Adaptar | Nuevo (sin LCD = TTS/LED) |
+| IFTTT/Webhooks | ✅ Adaptar | Nuevo |
+
+---
+
+## 6. Timer/Countdown Actions
+
+### Objetivo
+Timers y countdowns para streaming (pomodoro, breaks, raid timers).
+
+### Implementación
+
+```python
+# k2deck/actions/timer.py
+import threading
+import time
+from typing import Callable
+
+class TimerManager:
+    """Singleton for managing active timers."""
+    _instance = None
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            cls._instance._timers = {}
+        return cls._instance
+
+    def start_timer(self, name: str, seconds: int,
+                    on_tick: Callable[[int], None] = None,
+                    on_complete: Callable[[], None] = None) -> bool:
+        """Start a countdown timer."""
+        if name in self._timers:
+            return False  # Already running
+
+        def _run():
+            remaining = seconds
+            while remaining > 0 and name in self._timers:
+                if on_tick:
+                    on_tick(remaining)
+                time.sleep(1)
+                remaining -= 1
+
+            if name in self._timers:
+                del self._timers[name]
+                if on_complete:
+                    on_complete()
+
+        thread = threading.Thread(target=_run, daemon=True)
+        self._timers[name] = {"thread": thread, "remaining": seconds}
+        thread.start()
+        return True
+
+    def stop_timer(self, name: str) -> bool:
+        """Stop a running timer."""
+        if name in self._timers:
+            del self._timers[name]
+            return True
+        return False
+
+    def get_remaining(self, name: str) -> int | None:
+        """Get remaining seconds for a timer."""
+        if name in self._timers:
+            return self._timers[name].get("remaining")
+        return None
+
+
+class TimerStartAction(Action):
+    """Start a countdown timer.
+
+    Config:
+        name: Timer identifier
+        seconds: Duration in seconds
+        on_complete: Optional action to execute when done
+        tts_announce: Announce remaining time via TTS (optional)
+        led_note: LED to flash when complete (optional)
+    """
+
+    def execute(self, event: MidiEvent) -> None:
+        if event.type != "note_on" or event.value == 0:
+            return
+
+        name = self._config.get("name", "default")
+        seconds = self._config.get("seconds", 60)
+
+        def on_complete():
+            # Flash LED if configured
+            if led_note := self._config.get("led_note"):
+                # Flash green 3 times
+                pass
+            # TTS if configured
+            if self._config.get("tts_announce"):
+                # Announce completion
+                pass
+            # Execute completion action if configured
+            if complete_action := self._config.get("on_complete"):
+                # Execute action
+                pass
+
+        TimerManager().start_timer(name, seconds, on_complete=on_complete)
+
+
+class TimerStopAction(Action):
+    """Stop a running timer."""
+
+    def execute(self, event: MidiEvent) -> None:
+        if event.type != "note_on" or event.value == 0:
+            return
+
+        name = self._config.get("name", "default")
+        TimerManager().stop_timer(name)
+
+
+class TimerToggleAction(Action):
+    """Toggle timer start/stop."""
+
+    def execute(self, event: MidiEvent) -> None:
+        if event.type != "note_on" or event.value == 0:
+            return
+
+        name = self._config.get("name", "default")
+        manager = TimerManager()
+
+        if manager.get_remaining(name) is not None:
+            manager.stop_timer(name)
+        else:
+            seconds = self._config.get("seconds", 60)
+            manager.start_timer(name, seconds)
+```
+
+### Config Examples
+
+```json
+{
+  "action": "timer_start",
+  "name": "pomodoro",
+  "seconds": 1500,
+  "tts_announce": true,
+  "led_note": 36,
+  "on_complete": { "action": "sound_play", "file": "bell.wav" }
+}
+```
+
+```json
+{
+  "action": "timer_toggle",
+  "name": "break_timer",
+  "seconds": 300
+}
+```
+
+### Estimación
+- ~120 LOC
+- 0 dependencias nuevas
+- ~8 tests
+
+---
+
+## 7. UX/UI Reference: StreamController
+
+### Elementos a Copiar de StreamController
+
+#### Layout General
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  ┌──────────┐                                           ┌─────────────┐ │
+│  │ Sidebar  │              Main Content                 │  Settings   │ │
+│  │          │                                           │   Panel     │ │
+│  │ • Decks  │   ┌─────────────────────────────────┐    │             │ │
+│  │ • Store  │   │        Device Grid               │    │  [Action]   │ │
+│  │ • Plugins│   │     (Visual representation)      │    │  [LED]      │ │
+│  │ • Settings   │                                   │    │  [Layer]    │ │
+│  │          │   └─────────────────────────────────┘    │             │ │
+│  └──────────┘                                           └─────────────┘ │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+#### Patrones de UI a Implementar
+
+| Patrón SC | Implementación K2 Deck | Prioridad |
+|-----------|------------------------|-----------|
+| **Dark theme** | Tailwind dark mode | Alta |
+| **Device grid visual** | K2Grid.vue con 4×8 layout | Alta |
+| **Click-to-configure** | Click control → abre panel | Alta |
+| **Drag actions to grid** | ActionLibrary → K2Control | Alta |
+| **Real-time LED preview** | WebSocket `led_change` | Alta |
+| **Plugin store sidebar** | Lista de plugins instalados | Media |
+| **Page tabs** | LayerTabs.vue (0, 1, 2) | Alta |
+| **Folder breadcrumb** | FolderBreadcrumb.vue | Alta |
+| **Settings panel deslizable** | Panel derecho colapsable | Media |
+| **Integration status pills** | Header con OBS/Spotify/Twitch | Alta |
+| **MIDI monitor footer** | MidiMonitor.vue en bottom | Media |
+
+#### Colores y Estilo (Tailwind)
+
+```javascript
+// tailwind.config.js
+module.exports = {
+  theme: {
+    extend: {
+      colors: {
+        // StreamController-inspired dark palette
+        'k2-bg': '#1a1a2e',
+        'k2-surface': '#16213e',
+        'k2-primary': '#0f3460',
+        'k2-accent': '#e94560',
+        'k2-success': '#00d26a',
+        'k2-warning': '#ffc107',
+        // LED colors
+        'led-red': '#ff3333',
+        'led-amber': '#ffaa00',
+        'led-green': '#00ff66',
+      }
+    }
+  }
+}
+```
+
+#### Componentes Inspirados en SC
+
+```vue
+<!-- K2Control.vue - Similar a SC key display -->
+<template>
+  <div
+    class="k2-control relative rounded-lg cursor-pointer transition-all"
+    :class="[
+      isButton ? 'aspect-square' : 'aspect-[1/2]',
+      isSelected ? 'ring-2 ring-k2-accent' : '',
+      hasAction ? 'bg-k2-surface' : 'bg-k2-bg/50'
+    ]"
+    @click="$emit('select', control.id)"
+  >
+    <!-- LED indicator (solo para buttons) -->
+    <div
+      v-if="control.led"
+      class="absolute top-1 right-1 w-3 h-3 rounded-full"
+      :class="ledColorClass"
+    />
+
+    <!-- Control label -->
+    <span class="text-xs text-gray-400">{{ control.id }}</span>
+
+    <!-- Action icon/name -->
+    <div v-if="hasAction" class="text-center">
+      <span class="text-sm">{{ actionName }}</span>
+    </div>
+  </div>
+</template>
+```
+
 ---
 
 ## Orden de Implementación Recomendado
@@ -1550,7 +1858,8 @@ class TTSAction(Action):
 | 9 | Twitch Integration | ✅ DONE | ~570 | - |
 | 10 | **Web UI Backend** | ❌ TODO | ~900 | Alta |
 | 11 | **Web UI Frontend** | ❌ TODO | ~3000 | Alta |
-| 12 | **Plugin System** | ❌ TODO | ~500 | Baja |
+| 12 | **Timer/Countdown** | ❌ TODO | ~120 | Media |
+| 13 | **Plugin System** | ❌ TODO | ~600 | Baja |
 
 ---
 
