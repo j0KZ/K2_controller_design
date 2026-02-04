@@ -426,25 +426,110 @@ WS /ws/events  # Bidireccional
 k2deck/web/frontend/
 ├── src/
 │   ├── components/
-│   │   ├── K2Layout.vue       # Visual K2 grid (muestra LEDs en tiempo real)
-│   │   ├── ControlConfig.vue  # Editor universal (button/encoder/fader/pot)
-│   │   ├── ActionPicker.vue   # Selector de tipo de acción + form dinámico
-│   │   ├── ActionForm.vue     # Form generado desde JSON Schema
-│   │   ├── ProfileManager.vue # CRUD de perfiles
-│   │   ├── MidiMonitor.vue    # Live MIDI display
-│   │   ├── IntegrationStatus.vue  # OBS/Spotify/Twitch status
-│   │   └── FolderBreadcrumb.vue   # Navegación de folders
+│   │   ├── layout/
+│   │   │   ├── K2Grid.vue           # Grid visual del K2 (4×8)
+│   │   │   ├── K2Control.vue        # Control individual (button/encoder/fader/pot)
+│   │   │   ├── K2Led.vue            # LED indicator con animación de color
+│   │   │   └── LayerTabs.vue        # Tabs para Layer 0/1/2
+│   │   ├── config/
+│   │   │   ├── ControlConfig.vue    # Panel de configuración (derecha)
+│   │   │   ├── ActionPicker.vue     # Dropdown de tipos de acción
+│   │   │   ├── ActionForm.vue       # Form dinámico desde JSON Schema
+│   │   │   ├── LedConfig.vue        # Selector de color LED (on/off state)
+│   │   │   └── LayerConfig.vue      # Config por layer (tabs)
+│   │   ├── actions/
+│   │   │   ├── ActionLibrary.vue    # Panel lateral con acciones arrastrables
+│   │   │   ├── ActionCard.vue       # Card de acción (draggable)
+│   │   │   └── ActionCategories.vue # Filtros: System, Media, OBS, etc.
+│   │   ├── profiles/
+│   │   │   ├── ProfileManager.vue   # CRUD de perfiles
+│   │   │   ├── ProfileDropdown.vue  # Selector de perfil activo
+│   │   │   └── ImportExport.vue     # Botones import/export JSON
+│   │   ├── status/
+│   │   │   ├── IntegrationStatus.vue    # Pills: OBS/Spotify/Twitch
+│   │   │   ├── ConnectionStatus.vue     # K2 conectado/desconectado
+│   │   │   └── FolderBreadcrumb.vue     # Navegación: / > obs_controls
+│   │   ├── monitor/
+│   │   │   └── MidiMonitor.vue      # Live MIDI events (bottom bar)
+│   │   └── common/
+│   │       ├── ValidationError.vue  # Feedback de errores
+│   │       └── ConfirmDialog.vue    # Confirmaciones (delete, etc.)
 │   ├── stores/
-│   │   ├── config.js          # Pinia: config activa
-│   │   ├── k2state.js         # Pinia: LEDs, layer, folder, conexión
-│   │   ├── profiles.js        # Pinia: lista de perfiles
-│   │   └── integrations.js    # Pinia: estado integraciones
+│   │   ├── config.js          # Pinia: config activa + validation
+│   │   ├── k2state.js         # Pinia: LEDs, layer, folder, connection
+│   │   ├── profiles.js        # Pinia: CRUD perfiles
+│   │   ├── actions.js         # Pinia: action types + schemas
+│   │   └── integrations.js    # Pinia: OBS/Spotify/Twitch status
 │   ├── composables/
-│   │   ├── useWebSocket.js    # WebSocket con reconnect
-│   │   └── useApi.js          # Fetch helpers
+│   │   ├── useWebSocket.js    # WebSocket con reconnect + event handlers
+│   │   ├── useApi.js          # Fetch helpers con error handling
+│   │   ├── useDragDrop.js     # Drag & drop de acciones al grid
+│   │   └── useValidation.js   # Validación de config antes de save
+│   ├── utils/
+│   │   ├── k2Layout.js        # Constantes del layout K2
+│   │   └── ledColors.js       # Colores y offsets de LEDs
 │   └── App.vue
 ├── package.json
 └── vite.config.js
+```
+
+### 4.2.1 Funcionalidad Drag & Drop (Stream Deck-like)
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  ┌─────────────┐                                                        │
+│  │ ACTIONS     │    ┌─────────────────────────────────────────────────┐ │
+│  │             │    │              K2 GRID                            │ │
+│  │ ┌─────────┐ │    │  ┌────┬────┬────┬────┐                         │ │
+│  │ │ Hotkey  │ │    │  │ E1 │ E2 │ E3 │ E4 │  ← Drop zone            │ │
+│  │ └─────────┘ │    │  ├────┼────┼────┼────┤                         │ │
+│  │ ┌─────────┐ │    │  │🟢A1│ A2 │ A3 │ A4 │  ← LED muestra color    │ │
+│  │ │ OBS     │◄├────┼──│    │    │    │    │                         │ │
+│  │ └─────────┘ │drag│  └────┴────┴────┴────┘                         │ │
+│  │ ┌─────────┐ │    │                                                 │ │
+│  │ │ Spotify │ │    │  Layer: [0] [1] [2]                            │ │
+│  │ └─────────┘ │    └─────────────────────────────────────────────────┘ │
+│  │ ┌─────────┐ │                                                        │
+│  │ │ Twitch  │ │    Al soltar acción sobre control:                    │
+│  │ └─────────┘ │    1. Abre ControlConfig.vue con ActionForm           │
+│  │ ...         │    2. Usuario configura parámetros                    │
+│  └─────────────┘    3. Click [Save] → PUT /api/config                  │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### 4.2.2 WebSocket Event Handlers
+
+```javascript
+// stores/k2state.js
+export const useK2State = defineStore('k2state', {
+  state: () => ({
+    leds: {},           // { 36: 'green', 72: 'amber', ... }
+    layer: 0,           // 0, 1, 2
+    folder: null,       // 'obs_controls' | null
+    connected: false,   // K2 conectado
+  }),
+
+  actions: {
+    // Llamado por useWebSocket cuando llega evento
+    handleWsEvent(event) {
+      switch (event.type) {
+        case 'led_change':
+          this.leds[event.data.note] = event.data.on ? event.data.color : null
+          break
+        case 'layer_change':
+          this.layer = event.data.layer
+          break
+        case 'folder_change':
+          this.folder = event.data.folder
+          break
+        case 'connection_change':
+          this.connected = event.data.connected
+          break
+      }
+    }
+  }
+})
 ```
 
 ### 4.3 Decisiones de Diseño (CONFIRMADAS)
