@@ -7,7 +7,6 @@ Uses async twitchAPI with sync wrapper via ThreadPoolExecutor.
 import asyncio
 import logging
 import os
-import json
 import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -15,6 +14,31 @@ from threading import Lock
 from typing import Any
 
 logger = logging.getLogger(__name__)
+
+
+def _load_credentials_from_keyring() -> tuple[str | None, str | None]:
+    """Load Twitch credentials from OS keyring (preferred).
+
+    Returns:
+        Tuple of (client_id, client_secret) or (None, None) if not found.
+    """
+    try:
+        from k2deck.core.secure_storage import get_twitch_credentials
+        return get_twitch_credentials()
+    except ImportError:
+        return None, None
+
+
+def _load_credentials_from_env() -> tuple[str | None, str | None]:
+    """Load Twitch credentials from environment variables (fallback).
+
+    Returns:
+        Tuple of (client_id, client_secret) or (None, None) if not set.
+    """
+    return (
+        os.environ.get("TWITCH_CLIENT_ID"),
+        os.environ.get("TWITCH_CLIENT_SECRET"),
+    )
 
 # Optional dependency
 try:
@@ -95,12 +119,31 @@ class TwitchClient:
     ) -> None:
         """Configure Twitch API credentials.
 
+        Priority: explicit args > keyring > environment variables.
+
         Args:
-            client_id: Twitch app client ID (or set TWITCH_CLIENT_ID env var)
-            client_secret: Twitch app client secret (or set TWITCH_CLIENT_SECRET env var)
+            client_id: Twitch app client ID
+            client_secret: Twitch app client secret
         """
-        self._client_id = client_id or os.environ.get("TWITCH_CLIENT_ID", "")
-        self._client_secret = client_secret or os.environ.get("TWITCH_CLIENT_SECRET", "")
+        # Use explicit args if provided
+        if client_id and client_secret:
+            self._client_id = client_id
+            self._client_secret = client_secret
+            return
+
+        # Try keyring (most secure)
+        keyring_id, keyring_secret = _load_credentials_from_keyring()
+        client_id = client_id or keyring_id
+        client_secret = client_secret or keyring_secret
+
+        # Fallback to environment variables
+        if not client_id or not client_secret:
+            env_id, env_secret = _load_credentials_from_env()
+            client_id = client_id or env_id
+            client_secret = client_secret or env_secret
+
+        self._client_id = client_id or ""
+        self._client_secret = client_secret or ""
 
     def initialize(
         self,
@@ -222,28 +265,47 @@ class TwitchClient:
             return False
 
     def _load_tokens(self) -> dict | None:
-        """Load tokens from disk."""
-        if not TOKEN_FILE.exists():
-            return None
+        """Load tokens from disk (DPAPI encrypted on Windows)."""
         try:
-            with open(TOKEN_FILE) as f:
-                return json.load(f)
-        except Exception as e:
-            logger.debug("Failed to load Twitch tokens: %s", e)
-            return None
+            from k2deck.core.secure_storage import load_encrypted_json
+            return load_encrypted_json(TOKEN_FILE)
+        except ImportError:
+            # Fallback if secure_storage not available
+            if not TOKEN_FILE.exists():
+                return None
+            try:
+                import json
+                with open(TOKEN_FILE) as f:
+                    return json.load(f)
+            except Exception as e:
+                logger.debug("Failed to load Twitch tokens: %s", e)
+                return None
 
     def _save_tokens(self, access_token: str, refresh_token: str | None) -> None:
-        """Save tokens to disk."""
+        """Save tokens to disk (DPAPI encrypted on Windows)."""
         try:
-            CONFIG_DIR.mkdir(parents=True, exist_ok=True)
-            with open(TOKEN_FILE, "w") as f:
-                json.dump({
-                    "access_token": access_token,
-                    "refresh_token": refresh_token,
-                }, f)
-            logger.debug("Twitch tokens saved")
-        except Exception as e:
-            logger.warning("Failed to save Twitch tokens: %s", e)
+            from k2deck.core.secure_storage import save_encrypted_json
+            data = {
+                "access_token": access_token,
+                "refresh_token": refresh_token,
+            }
+            if save_encrypted_json(TOKEN_FILE, data):
+                logger.debug("Twitch tokens saved (encrypted)")
+            else:
+                logger.warning("Failed to save Twitch tokens")
+        except ImportError:
+            # Fallback if secure_storage not available
+            try:
+                import json
+                CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+                with open(TOKEN_FILE, "w") as f:
+                    json.dump({
+                        "access_token": access_token,
+                        "refresh_token": refresh_token,
+                    }, f)
+                logger.debug("Twitch tokens saved (unencrypted)")
+            except Exception as e:
+                logger.warning("Failed to save Twitch tokens: %s", e)
 
     def _rate_limit(self) -> bool:
         """Check and enforce rate limiting.
@@ -421,7 +483,8 @@ class TwitchClient:
         return info is not None and info.get("is_live", False)
 
     def disconnect(self) -> None:
-        """Disconnect from Twitch API."""
+        """Disconnect from Twitch API and clean up resources."""
+        # Close Twitch connection
         if self._twitch:
             try:
                 self._run_async(self._twitch.close())
@@ -430,6 +493,22 @@ class TwitchClient:
         self._twitch = None
         self._connected = False
         self._initialized = False
+
+        # Clean up event loop
+        if self._loop and not self._loop.is_closed():
+            try:
+                self._loop.close()
+            except Exception:
+                pass
+            self._loop = None
+
+        # Shutdown executor
+        if self._executor:
+            try:
+                self._executor.shutdown(wait=False)
+            except Exception:
+                pass
+
         logger.info("Twitch disconnected")
 
 

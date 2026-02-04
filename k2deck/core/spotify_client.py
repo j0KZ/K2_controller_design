@@ -2,6 +2,7 @@
 
 import logging
 import os
+import threading
 from pathlib import Path
 from typing import Any
 
@@ -10,23 +11,34 @@ from spotipy.oauth2 import SpotifyOAuth
 
 logger = logging.getLogger(__name__)
 
-# Load .env file if it exists
-_ENV_FILE = Path(__file__).parent.parent / "config" / ".env"
-if _ENV_FILE.exists():
-    try:
-        with open(_ENV_FILE) as f:
-            for line in f:
-                line = line.strip()
-                if line and not line.startswith("#") and "=" in line:
-                    key, value = line.split("=", 1)
-                    os.environ.setdefault(key.strip(), value.strip())
-        logger.debug("Loaded Spotify credentials from .env")
-    except Exception as e:
-        logger.warning("Failed to load .env: %s", e)
-
 # Default paths
-CONFIG_DIR = Path(__file__).parent.parent / "config"
+CONFIG_DIR = Path.home() / ".k2deck"
 TOKEN_CACHE_PATH = CONFIG_DIR / "spotify_token.json"
+
+
+def _load_credentials_from_keyring() -> tuple[str | None, str | None]:
+    """Load Spotify credentials from OS keyring (preferred).
+
+    Returns:
+        Tuple of (client_id, client_secret) or (None, None) if not found.
+    """
+    try:
+        from k2deck.core.secure_storage import get_spotify_credentials
+        return get_spotify_credentials()
+    except ImportError:
+        return None, None
+
+
+def _load_credentials_from_env() -> tuple[str | None, str | None]:
+    """Load Spotify credentials from environment variables (fallback).
+
+    Returns:
+        Tuple of (client_id, client_secret) or (None, None) if not set.
+    """
+    return (
+        os.environ.get("SPOTIPY_CLIENT_ID"),
+        os.environ.get("SPOTIPY_CLIENT_SECRET"),
+    )
 
 # Required scopes for K2 Deck functionality
 SPOTIFY_SCOPES = [
@@ -44,12 +56,15 @@ class SpotifyClient:
     """Singleton wrapper for Spotify API client."""
 
     _instance: "SpotifyClient | None" = None
+    _instance_lock = threading.Lock()
     _sp: spotipy.Spotify | None = None
     _initialized: bool = False
 
     def __new__(cls) -> "SpotifyClient":
         if cls._instance is None:
-            cls._instance = super().__new__(cls)
+            with cls._instance_lock:
+                if cls._instance is None:  # Double-check locking
+                    cls._instance = super().__new__(cls)
         return cls._instance
 
     def initialize(
@@ -71,15 +86,24 @@ class SpotifyClient:
         if self._initialized and self._sp:
             return True
 
-        # Use env vars if not provided
-        client_id = client_id or os.environ.get("SPOTIPY_CLIENT_ID")
-        client_secret = client_secret or os.environ.get("SPOTIPY_CLIENT_SECRET")
+        # Try to get credentials from various sources (priority order)
+        if not client_id or not client_secret:
+            # 1. Try OS keyring (most secure)
+            keyring_id, keyring_secret = _load_credentials_from_keyring()
+            client_id = client_id or keyring_id
+            client_secret = client_secret or keyring_secret
+
+        if not client_id or not client_secret:
+            # 2. Try environment variables (fallback)
+            env_id, env_secret = _load_credentials_from_env()
+            client_id = client_id or env_id
+            client_secret = client_secret or env_secret
 
         if not client_id or not client_secret:
             logger.warning(
                 "Spotify credentials not configured. "
-                "Set SPOTIPY_CLIENT_ID and SPOTIPY_CLIENT_SECRET environment variables, "
-                "or create k2deck/config/.env with these values."
+                "Use `python -m k2deck.tools.setup_credentials` to configure, "
+                "or set SPOTIPY_CLIENT_ID and SPOTIPY_CLIENT_SECRET environment variables."
             )
             return False
 

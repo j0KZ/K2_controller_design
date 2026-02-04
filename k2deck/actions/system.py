@@ -83,10 +83,10 @@ def shutdown_computer(force: bool = False) -> bool:
         force: If True, force shutdown without waiting for apps to close.
     """
     try:
-        flags = "/s /t 0"
+        cmd = ["shutdown", "/s", "/t", "0"]
         if force:
-            flags += " /f"
-        subprocess.run(f"shutdown {flags}", shell=True, check=True)
+            cmd.append("/f")
+        subprocess.run(cmd, check=True)
         return True
     except Exception as e:
         logger.error("Failed to shutdown: %s", e)
@@ -100,10 +100,10 @@ def restart_computer(force: bool = False) -> bool:
         force: If True, force restart without waiting for apps to close.
     """
     try:
-        flags = "/r /t 0"
+        cmd = ["shutdown", "/r", "/t", "0"]
         if force:
-            flags += " /f"
-        subprocess.run(f"shutdown {flags}", shell=True, check=True)
+            cmd.append("/f")
+        subprocess.run(cmd, check=True)
         return True
     except Exception as e:
         logger.error("Failed to restart: %s", e)
@@ -115,7 +115,22 @@ def open_url(url: str) -> bool:
 
     Args:
         url: URL to open.
+
+    Returns:
+        True if successful, False if URL is invalid or failed.
     """
+    from urllib.parse import urlparse
+
+    # Validate URL scheme to prevent file://, javascript://, etc.
+    try:
+        parsed = urlparse(url)
+        if parsed.scheme not in ("http", "https"):
+            logger.warning("Blocked non-HTTP URL: %s (scheme: %s)", url, parsed.scheme)
+            return False
+    except Exception as e:
+        logger.warning("Invalid URL: %s - %s", url, e)
+        return False
+
     try:
         webbrowser.open(url)
         logger.info("Opened URL: %s", url)
@@ -135,13 +150,15 @@ def paste_to_clipboard(text: str) -> bool:
         import win32clipboard
         import win32con
 
-        # Copy to clipboard
+        # Copy to clipboard with proper resource cleanup
         win32clipboard.OpenClipboard()
-        win32clipboard.EmptyClipboard()
-        win32clipboard.SetClipboardText(text, win32con.CF_UNICODETEXT)
-        win32clipboard.CloseClipboard()
+        try:
+            win32clipboard.EmptyClipboard()
+            win32clipboard.SetClipboardText(text, win32con.CF_UNICODETEXT)
+        finally:
+            win32clipboard.CloseClipboard()
 
-        logger.debug("Copied to clipboard: %s", text[:50] + "..." if len(text) > 50 else text)
+        logger.debug("Copied to clipboard (%d chars)", len(text))
         return True
     except Exception as e:
         logger.error("Failed to copy to clipboard: %s", e)
@@ -270,4 +287,4 @@ class ClipboardPasteAction(Action):
             import time
             time.sleep(0.05)  # Small delay for clipboard to be ready
             keyboard.execute_hotkey(["ctrl", "v"], hold_ms=20)
-            logger.info("Pasted text: %s", text[:30] + "..." if len(text) > 30 else text)
+            logger.info("Pasted text (%d chars)", len(text))

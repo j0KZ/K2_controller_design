@@ -153,10 +153,17 @@ class LaunchAction(Action):
         # If not running, try to launch
         launch_path = self.config.get("launch_path")
         if launch_path:
+            import os
             import subprocess
 
+            # Validate the path exists and is a file (security: no arbitrary commands)
+            if not os.path.isfile(launch_path):
+                logger.warning("launch_path not found or not a file: %s", launch_path)
+                return
+
             try:
-                subprocess.Popen(launch_path, shell=True)
+                # Use list form without shell=True for security
+                subprocess.Popen([launch_path])
                 logger.info("Launched: %s", launch_path)
             except Exception as e:
                 logger.error("Failed to launch %s: %s", launch_path, e)

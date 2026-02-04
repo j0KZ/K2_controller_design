@@ -6,7 +6,16 @@ comtypes>=1.2.0
 spotipy>=2.23.0
 pywin32>=306
 psutil>=5.9.0
+keyring>=25.0.0
 pystray>=0.19.5
 Pillow>=10.0.0
 watchdog>=3.0.0
 pytest>=8.0.0
+# Web UI
+fastapi>=0.109.0
+uvicorn>=0.27.0
+python-multipart>=0.0.6
+httpx>=0.26.0
+# Streaming integrations
+obsws-python>=1.7.0
+twitchAPI>=4.2.0

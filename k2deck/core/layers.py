@@ -16,6 +16,7 @@ Hardware Layer Button:
 """
 
 import logging
+import threading
 from enum import IntEnum
 from typing import TYPE_CHECKING, Callable
 
@@ -35,6 +36,9 @@ class Layer(IntEnum):
 # Layer button (cycles through layers)
 LAYER_BUTTON_NOTE = 15
 
+# Thread lock for layer state
+_lock = threading.Lock()
+
 # Callbacks for layer change notifications
 _layer_change_callbacks: list[Callable[[int], None]] = []
 
@@ -45,7 +49,8 @@ _layer_count: int = 3
 
 def get_current_layer() -> int:
     """Get current active layer (1-based)."""
-    return _current_layer
+    with _lock:
+        return _current_layer
 
 
 def set_layer(layer: int) -> bool:
@@ -59,22 +64,25 @@ def set_layer(layer: int) -> bool:
     """
     global _current_layer
 
-    if layer < 1 or layer > _layer_count:
-        logger.warning("Invalid layer: %d (must be 1-%d)", layer, _layer_count)
-        return False
+    with _lock:
+        if layer < 1 or layer > _layer_count:
+            logger.warning("Invalid layer: %d (must be 1-%d)", layer, _layer_count)
+            return False
 
-    if layer == _current_layer:
-        return False
+        if layer == _current_layer:
+            return False
 
-    old_layer = _current_layer
-    _current_layer = layer
+        old_layer = _current_layer
+        _current_layer = layer
+        new_layer = _current_layer
+        callbacks = _layer_change_callbacks.copy()
 
-    logger.info("Layer changed: %d -> %d", old_layer, _current_layer)
+    logger.info("Layer changed: %d -> %d", old_layer, new_layer)
 
-    # Notify callbacks
-    for callback in _layer_change_callbacks:
+    # Notify callbacks (outside lock to prevent deadlocks)
+    for callback in callbacks:
         try:
-            callback(_current_layer)
+            callback(new_layer)
         except Exception as e:
             logger.error("Layer change callback error: %s", e)
 
@@ -87,14 +95,16 @@ def cycle_layer() -> int:
     Returns:
         New layer number.
     """
-    next_layer = (_current_layer % _layer_count) + 1
+    with _lock:
+        next_layer = (_current_layer % _layer_count) + 1
     set_layer(next_layer)
-    return _current_layer
+    return get_current_layer()
 
 
 def get_layer_count() -> int:
     """Get the number of configured layers."""
-    return _layer_count
+    with _lock:
+        return _layer_count
 
 
 def set_layer_count(count: int) -> None:
@@ -109,11 +119,11 @@ def set_layer_count(count: int) -> None:
         logger.warning("Invalid layer count: %d (must be >= 1)", count)
         return
 
-    _layer_count = count
-
-    # Clamp current layer if needed
-    if _current_layer > _layer_count:
-        _current_layer = 1
+    with _lock:
+        _layer_count = count
+        # Clamp current layer if needed
+        if _current_layer > _layer_count:
+            _current_layer = 1
 
 
 def register_layer_change_callback(callback: Callable[[int], None]) -> None:
@@ -121,14 +131,16 @@ def register_layer_change_callback(callback: Callable[[int], None]) -> None:
 
     Callback receives the new layer number.
     """
-    if callback not in _layer_change_callbacks:
-        _layer_change_callbacks.append(callback)
+    with _lock:
+        if callback not in _layer_change_callbacks:
+            _layer_change_callbacks.append(callback)
 
 
 def unregister_layer_change_callback(callback: Callable[[int], None]) -> None:
     """Unregister a layer change callback."""
-    if callback in _layer_change_callbacks:
-        _layer_change_callbacks.remove(callback)
+    with _lock:
+        if callback in _layer_change_callbacks:
+            _layer_change_callbacks.remove(callback)
 
 
 def is_layer_button(note: int) -> bool:
@@ -191,7 +203,7 @@ def resolve_layer_mapping(mapping_config: dict | None, note_or_cc: int) -> dict 
     if mapping_config is None:
         return None
 
-    layer_key = f"layer_{_current_layer}"
+    layer_key = f"layer_{get_current_layer()}"
 
     # Check for layer-specific mapping
     if layer_key in mapping_config:
@@ -202,7 +214,7 @@ def resolve_layer_mapping(mapping_config: dict | None, note_or_cc: int) -> dict 
             if key in mapping_config and key not in layer_mapping:
                 layer_mapping[key] = mapping_config[key]
 
-        logger.debug("Layer %d mapping for %d: %s", _current_layer, note_or_cc,
+        logger.debug("Layer %d mapping for %d: %s", get_current_layer(), note_or_cc,
                      layer_mapping.get("name", "unnamed"))
         return layer_mapping
 
@@ -211,7 +223,7 @@ def resolve_layer_mapping(mapping_config: dict | None, note_or_cc: int) -> dict 
 
     if has_layer_keys:
         # Has layer configs but not for current layer - no mapping
-        logger.debug("No mapping for layer %d on %d", _current_layer, note_or_cc)
+        logger.debug("No mapping for layer %d on %d", get_current_layer(), note_or_cc)
         return None
 
     # Simple mapping - same for all layers
@@ -228,7 +240,7 @@ def get_layer_led_color(layer: int | None = None) -> str:
         Color name for the layer.
     """
     if layer is None:
-        layer = _current_layer
+        layer = get_current_layer()
 
     # Color coding: Layer 1 = green, Layer 2 = amber, Layer 3 = red
     colors = {1: "green", 2: "amber", 3: "red"}
@@ -238,5 +250,6 @@ def get_layer_led_color(layer: int | None = None) -> str:
 def reset() -> None:
     """Reset layer state to default."""
     global _current_layer
-    _current_layer = 1
+    with _lock:
+        _current_layer = 1
     logger.debug("Layer state reset to 1")
