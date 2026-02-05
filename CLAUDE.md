@@ -13,9 +13,12 @@ Python app that turns an Allen & Heath Xone:K2 MIDI controller into a system-wid
 - **Keyboard simulation:** `pynput`
 - **Per-app volume:** `pycaw` + `comtypes`
 - **Spotify API:** `spotipy`
+- **Twitch API:** `twitchAPI`
+- **OBS WebSocket:** `obsws-python`
 - **Window management:** `pywin32`
 - **System tray:** `pystray` + `Pillow`
 - **Config hot-reload:** `watchdog`
+- **Web UI:** `fastapi` + `uvicorn` + Vue.js
 - **Logging:** stdlib `logging`
 
 ## Project Structure
@@ -32,20 +35,42 @@ k2deck/
 │   ├── midi_output.py      # MIDI output to K2 (LEDs)
 │   ├── mapping_engine.py   # Resolves MIDI event → action
 │   ├── profile_manager.py  # Load/switch profiles, hot-reload
-│   └── throttle.py         # Rate limiter for CC messages
+│   ├── throttle.py         # Rate limiter for CC messages
+│   ├── analog_state.py     # Persist fader/pot positions (Jump mode)
+│   ├── folders.py          # Button sub-pages navigation
+│   ├── counters.py         # Persistent counters for actions
+│   ├── obs_client.py       # OBS WebSocket client
+│   ├── twitch_client.py    # Twitch API client
+│   └── spotify_client.py   # Spotify API wrapper
 ├── actions/
 │   ├── __init__.py
 │   ├── base.py             # Action ABC
 │   ├── hotkey.py           # pynput keystroke simulation
 │   ├── mouse_scroll.py     # pynput mouse scroll simulation
 │   ├── volume.py           # pycaw per-app volume
-│   ├── spotify.py          # spotipy API actions [Phase 2]
-│   ├── window.py           # pywin32 focus/launch [Phase 2]
+│   ├── spotify.py          # Spotify playback actions
+│   ├── obs.py              # OBS scene/source control
+│   ├── twitch.py           # Twitch stream actions
+│   ├── window.py           # pywin32 focus/launch
 │   └── system.py           # Lock, screenshot, etc.
 ├── feedback/
 │   ├── __init__.py
 │   ├── led_manager.py      # LED state machine
 │   └── led_colors.py       # Color offset constants (NOT velocity!)
+├── web/
+│   ├── __init__.py
+│   ├── server.py           # FastAPI app + uvicorn
+│   ├── routes/
+│   │   ├── __init__.py
+│   │   ├── pages.py        # Page CRUD endpoints
+│   │   ├── buttons.py      # Button config endpoints
+│   │   └── system.py       # Status, profiles, etc.
+│   ├── websocket/
+│   │   ├── __init__.py
+│   │   └── broadcast.py    # Real-time event broadcast
+│   └── frontend/           # Vue.js SPA (built assets)
+│       ├── index.html
+│       └── assets/
 ├── tools/
 │   ├── __init__.py
 │   ├── midi_learn.py       # CLI: discover controls + LED test
@@ -192,6 +217,26 @@ Build in this order. Each phase must be fully functional before moving to next.
 - If K2 not connected at startup: enter standby mode, retry every 5s.
 - Faders can send 60+ messages/sec — throttle CC processing to ~30Hz max.
 
+### Analog Control Sync (Jump Mode)
+
+K2 is **passive MIDI** — it cannot report physical positions on connect. Only sends CC when controls move.
+
+**Behavior:**
+1. `AnalogStateManager` persists all fader/pot positions to `~/.k2deck/analog_state.json`
+2. On reconnect, Web UI displays last saved positions (the "snapshot")
+3. When user moves a control, value **jumps immediately** to physical position
+4. This may cause audible jumps (e.g., volume) but ensures **precision over smoothness**
+
+**Why Jump mode (not Pickup):**
+- User preference: "que sea exactamente lo que estoy eligiendo"
+- Pickup requires touching every control to sync — impractical with 12 analog controls
+- Jump is predictable: move = control responds to exactly where you set it
+
+**Implementation notes:**
+- WebSocket broadcasts `analog_change` events in real-time
+- On client connect, server sends `analog_state` with all saved positions
+- Frontend stores in Pinia: `useAnalogState().positions[cc] = value`
+
 ## Critical Constraints
 
 1. **Single MIDI port access.** If another app has the K2 port open, K2 Deck cannot use it. Detect and warn.
@@ -204,3 +249,8 @@ Build in this order. Each phase must be fully functional before moving to next.
 8. **LED colors are NOTE OFFSETS.** Never use velocity for color. See `feedback/led_colors.py` and Hardware Notes.
 9. **Discord hotkeys must be GLOBAL.** User must configure them in Discord Settings > Keybinds. Document in README.
 10. **Don't auto-focus apps on hotkey.** Discord/Spotify hotkeys work globally. Stealing focus breaks user workflow. Window focus is Phase 2 opt-in only.
+
+## Common Gotchas
+
+1. **0-indexed vs 1-indexed.** MIDI channels, device IDs, port numbers — always verify which convention the API/protocol expects. K2 uses channel 16 in UI but 15 in code (0-indexed).
+2. **API latency vs local solutions.** Prefer system-level approaches (media keys, pycaw) over network APIs (Spotify API) when timing matters. A 2-second API round-trip kills UX for real-time controls.

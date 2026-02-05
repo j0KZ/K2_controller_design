@@ -69,6 +69,9 @@ k2deck/config/my_*.json
 .claude/
 CLAUDE.local.md
 
+# External repos / references (not part of this project)
+StreamController-main/
+
 # OS
 .DS_Store
 Thumbs.db

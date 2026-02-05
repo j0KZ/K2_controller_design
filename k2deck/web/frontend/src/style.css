@@ -1,0 +1,38 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: theme('colors.k2-bg'); }
+::-webkit-scrollbar-thumb { background: theme('colors.k2-border'); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: theme('colors.k2-text-secondary'); }
+
+/* Control selection */
+.control-selected {
+  @apply ring-2 ring-k2-accent ring-offset-2 ring-offset-k2-bg;
+}
+
+/* LED glow */
+.led-glow { box-shadow: 0 0 8px 2px currentColor; }
+
+/* Form inputs */
+.form-input {
+  @apply bg-k2-bg border border-k2-border rounded px-3 py-2 text-k2-text
+         focus:outline-none focus:ring-2 focus:ring-k2-accent;
+}
+
+.form-select { @apply form-input appearance-none cursor-pointer; }
+
+/* Buttons */
+.btn-primary {
+  @apply bg-k2-accent hover:bg-k2-accent-hover text-white px-4 py-2 rounded
+         font-medium transition-colors disabled:opacity-50;
+}
+.btn-secondary {
+  @apply bg-k2-surface hover:bg-k2-surface-hover text-k2-text px-4 py-2
+         rounded border border-k2-border transition-colors;
+}
+.btn-danger {
+  @apply bg-k2-error hover:bg-red-700 text-white px-4 py-2 rounded font-medium;
+}

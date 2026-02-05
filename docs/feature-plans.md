@@ -399,6 +399,172 @@ WS /ws/events  # Bidireccional
 
 **Total: 7 eventos server→client, 2 comandos client→server**
 
+#### Sincronización de Controles Analógicos (Faders/Pots)
+
+> **CRÍTICO:** Los faders y potenciómetros son controles ABSOLUTOS (0-127).
+> Deben sincronizarse en tiempo real con la UI y persistir sus posiciones.
+
+##### WebSocket Events para Analog Controls
+
+```python
+# Server → Client: Posición en tiempo real
+{ "type": "analog_change",
+  "data": {
+    "cc": 16,           # CC number del control
+    "value": 87,        # Valor actual (0-127)
+    "control_id": "F1", # ID del control
+    "type": "fader"     # fader | pot | encoder
+  }}
+
+# Server → Client: Estado inicial al conectar
+{ "type": "analog_state",
+  "data": {
+    "controls": [
+      { "cc": 16, "value": 87, "control_id": "F1" },
+      { "cc": 17, "value": 45, "control_id": "F2" },
+      { "cc": 4, "value": 127, "control_id": "P1" },
+      // ... todos los controles analógicos
+    ]
+  }}
+```
+
+##### Persistencia de Posiciones
+
+```python
+# k2deck/core/analog_state.py
+class AnalogStateManager:
+    """Persiste y sincroniza posiciones de controles analógicos."""
+
+    STATE_FILE = Path.home() / ".k2deck" / "analog_state.json"
+
+    def __init__(self):
+        self._positions: dict[int, int] = {}  # cc -> value
+        self._load()
+
+    def update(self, cc: int, value: int) -> None:
+        """Actualizar posición (llamado en cada CC message)."""
+        self._positions[cc] = value
+        # Debounced save (no guardar cada mensaje, throttle a 1/sec)
+
+    def get_all(self) -> dict[int, int]:
+        """Obtener todas las posiciones actuales."""
+        return self._positions.copy()
+
+    def get(self, cc: int) -> int:
+        """Obtener posición de un control."""
+        return self._positions.get(cc, 0)
+```
+
+##### Modo de Sincronización: JUMP (Preciso)
+
+Cuando el K2 se reconecta, la posición física puede no coincidir con el valor guardado.
+
+**Comportamiento (modo jump - único):**
+1. Al conectar: UI muestra las posiciones guardadas ("última foto")
+2. Al mover un control: salta inmediatamente al valor físico real
+3. Sin confusión: **lo que muevo = lo que pasa**
+
+```python
+# Comportamiento simple y predecible
+# Si moviste algo mientras apagado → al tocarlo, se ajusta al real
+# Puede haber salto, pero ES PRECISO
+```
+
+```javascript
+// stores/analogState.js
+export const useAnalogState = defineStore('analogState', {
+  state: () => ({
+    positions: {},        // { cc: value } - posiciones actuales
+    savedPositions: {},   // { cc: value } - última foto guardada
+  }),
+
+  actions: {
+    // Al recibir CC del K2 (control se movió)
+    handleAnalogChange(cc, physicalValue) {
+      // Jump directo al valor físico - sin pickup, sin espera
+      this.positions[cc] = physicalValue
+      // Emit to action system
+    },
+
+    // Al reconectar K2: cargar última foto
+    initFromSavedState(saved) {
+      this.savedPositions = { ...saved }
+      this.positions = { ...saved }  // UI muestra valores guardados
+      // Cuando usuario mueva un control, se actualiza al real
+    },
+
+    // Guardar estado actual (debounced, 1/sec)
+    saveState() {
+      this.savedPositions = { ...this.positions }
+      // Persistir a ~/.k2deck/analog_state.json
+    }
+  }
+})
+```
+
+##### Visualización en UI
+
+```vue
+<!-- K2Fader.vue -->
+<template>
+  <div class="fader-control flex flex-col items-center gap-1">
+    <!-- Track vertical -->
+    <div class="fader-track h-32 w-4 bg-k2-bg rounded relative">
+      <!-- Valor actual (verde) - sube desde abajo -->
+      <div
+        class="fader-value absolute bottom-0 w-full bg-k2-success rounded-b transition-all"
+        :style="{ height: (value / 127 * 100) + '%' }"
+      />
+      <!-- Knob indicator -->
+      <div
+        class="fader-knob absolute w-6 h-2 -left-1 bg-k2-text rounded"
+        :style="{ bottom: (value / 127 * 100) + '%' }"
+      />
+    </div>
+    <!-- Value label -->
+    <span class="text-xs text-k2-text-secondary font-mono">{{ value }}</span>
+    <!-- Control ID -->
+    <span class="text-[10px] text-k2-text-secondary">{{ controlId }}</span>
+  </div>
+</template>
+
+<!-- K2Pot.vue -->
+<template>
+  <div class="pot-control flex flex-col items-center gap-1">
+    <!-- Arco SVG mostrando valor -->
+    <svg class="w-12 h-12" viewBox="0 0 100 100">
+      <!-- Background arc -->
+      <path
+        d="M 20 80 A 40 40 0 1 1 80 80"
+        fill="none"
+        stroke="#303030"
+        stroke-width="8"
+        stroke-linecap="round"
+      />
+      <!-- Value arc (verde) -->
+      <path
+        :d="valueArc"
+        fill="none"
+        stroke="#33d17a"
+        stroke-width="8"
+        stroke-linecap="round"
+      />
+      <!-- Center dot -->
+      <circle cx="50" cy="50" r="4" fill="#ffffff" />
+    </svg>
+    <span class="text-xs text-k2-text-secondary font-mono">{{ value }}</span>
+    <span class="text-[10px] text-k2-text-secondary">{{ controlId }}</span>
+  </div>
+</template>
+```
+
+##### API Endpoints
+
+```python
+GET  /api/k2/state/analog           # Todas las posiciones actuales
+GET  /api/k2/state/analog/{cc}      # Posición de un control específico
+```
+
 #### K2 Layout Response Example
 
 ```json
@@ -427,8 +593,12 @@ k2deck/web/frontend/
 ├── src/
 │   ├── components/
 │   │   ├── layout/
-│   │   │   ├── K2Grid.vue           # Grid visual del K2 (4×8)
-│   │   │   ├── K2Control.vue        # Control individual (button/encoder/fader/pot)
+│   │   │   ├── K2Grid.vue           # Grid visual del K2 (layout real)
+│   │   │   ├── K2Control.vue        # Control individual (dispatcher)
+│   │   │   ├── K2Button.vue         # Botón con LED tricolor
+│   │   │   ├── K2Encoder.vue        # Encoder con indicador rotativo
+│   │   │   ├── K2Fader.vue          # Fader vertical con valor en tiempo real
+│   │   │   ├── K2Pot.vue            # Potenciómetro con arco de valor
 │   │   │   ├── K2Led.vue            # LED indicator con animación de color
 │   │   │   └── LayerTabs.vue        # Tabs para Layer 0/1/2
 │   │   ├── config/
@@ -457,6 +627,7 @@ k2deck/web/frontend/
 │   ├── stores/
 │   │   ├── config.js          # Pinia: config activa + validation
 │   │   ├── k2state.js         # Pinia: LEDs, layer, folder, connection
+│   │   ├── analogState.js     # Pinia: faders/pots positions + pickup mode
 │   │   ├── profiles.js        # Pinia: CRUD perfiles
 │   │   ├── actions.js         # Pinia: action types + schemas
 │   │   └── integrations.js    # Pinia: OBS/Spotify/Twitch status
@@ -464,6 +635,7 @@ k2deck/web/frontend/
 │   │   ├── useWebSocket.js    # WebSocket con reconnect + event handlers
 │   │   ├── useApi.js          # Fetch helpers con error handling
 │   │   ├── useDragDrop.js     # Drag & drop de acciones al grid
+│   │   ├── useAnalogSync.js   # Soft takeover + pickup mode logic
 │   │   └── useValidation.js   # Validación de config antes de save
 │   ├── utils/
 │   │   ├── k2Layout.js        # Constantes del layout K2
@@ -587,23 +759,27 @@ export const useK2State = defineStore('k2state', {
 
 | Componente | LOC | Descripción |
 |------------|-----|-------------|
-| Backend (FastAPI) | ~900 | 21 endpoints + WebSocket + validación |
-| Frontend (Vue) | ~3000 | Componentes, stores, composables |
-| **Total Web UI** | **~3900** | |
+| Backend (FastAPI) | ~1000 | 24 endpoints + WebSocket + analog sync |
+| Frontend (Vue) | ~3200 | Componentes, stores, composables, analog UI |
+| **Total Web UI** | **~4200** | |
 
 ### Archivos a crear
 
 ```
-k2deck/web/
-├── __init__.py
-├── server.py               # FastAPI app + lifespan + CORS
-├── routes/
-│   ├── __init__.py
-│   ├── config.py           # /api/config/* (5 endpoints)
-│   ├── profiles.py         # /api/profiles/* (6 endpoints)
-│   ├── actions.py          # /api/actions/* (3 endpoints)
-│   ├── k2.py               # /api/k2/* (6 endpoints)
-│   ├── midi.py             # /api/midi/* (3 endpoints)
+k2deck/
+├── core/
+│   └── analog_state.py     # Persistencia de posiciones faders/pots (~100 LOC)
+│
+└── web/
+    ├── __init__.py
+    ├── server.py               # FastAPI app + lifespan + CORS
+    ├── routes/
+    │   ├── __init__.py
+    │   ├── config.py           # /api/config/* (5 endpoints)
+    │   ├── profiles.py         # /api/profiles/* (6 endpoints)
+    │   ├── actions.py          # /api/actions/* (3 endpoints)
+    │   ├── k2.py               # /api/k2/* (9 endpoints, incluye analog)
+    │   ├── midi.py             # /api/midi/* (3 endpoints)
 │   └── integrations.py     # /api/integrations/* (4 endpoints)
 ├── websocket/
 │   ├── __init__.py
@@ -967,55 +1143,147 @@ class TimerToggleAction(Action):
 
 ## 7. UX/UI Reference: StreamController
 
-### Elementos a Copiar de StreamController
+> **Fuente:** Análisis de screenshots reales + código fuente de StreamController
+> - Repositorio: StreamController-main/src/
+> - Screenshots: 5 capturas de UI real de StreamController
 
-#### Layout General
+### Layout Real de StreamController (Observado)
+
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│  ┌──────────┐                                           ┌─────────────┐ │
-│  │ Sidebar  │              Main Content                 │  Settings   │ │
-│  │          │                                           │   Panel     │ │
-│  │ • Decks  │   ┌─────────────────────────────────┐    │             │ │
-│  │ • Store  │   │        Device Grid               │    │  [Action]   │ │
-│  │ • Plugins│   │     (Visual representation)      │    │  [LED]      │ │
-│  │ • Settings   │                                   │    │  [Layer]    │ │
-│  │          │   └─────────────────────────────────┘    │             │ │
-│  └──────────┘                                           └─────────────┘ │
+│  [≡ Menu]      StreamController           [Deck 1 ▼]   [Deck 2]   [+]  │ ← Header con selector de decks
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  ┌─────────────────────────────────────┐  ┌───────────────────────────┐ │
+│  │         DEVICE GRID (3×5)           │  │     CONFIG SIDEBAR        │ │
+│  │  ┌─────┬─────┬─────┐                │  │  ┌───────────────────────┐│ │
+│  │  │     │     │     │  [Page: 1]     │  │  │ State: [1] [2] [3]   ││ │ ← StateSwitcher
+│  │  │ btn │ btn │ btn │  [Page: 2]     │  │  └───────────────────────┘│ │
+│  │  │     │     │     │  ...           │  │  ┌───────────────────────┐│ │
+│  │  ├─────┼─────┼─────┤                │  │  │ [Icon] Select Image  ││ │ ← IconSelector
+│  │  │     │     │     │                │  │  └───────────────────────┘│ │
+│  │  │ btn │ btn │ btn │                │  │  ┌───────────────────────┐│ │
+│  │  │     │     │     │                │  │  │ Label: [___________] ││ │ ← LabelEditor
+│  │  ├─────┼─────┼─────┤                │  │  │ Position: [Top ▼]    ││ │
+│  │  │     │     │     │                │  │  └───────────────────────┘│ │
+│  │  │ btn │ btn │ btn │                │  │  ┌───────────────────────┐│ │
+│  │  │     │     │     │                │  │  │ Action: [Select ▼]   ││ │ ← ActionManager
+│  │  ├─────┼─────┼─────┤                │  │  │ ┌───────────────────┐││ │
+│  │  │     │     │     │                │  │  │ │ + Add Action      │││ │
+│  │  │ btn │ btn │ btn │                │  │  │ └───────────────────┘││ │
+│  │  │     │     │     │                │  │  └───────────────────────┘│ │
+│  │  ├─────┼─────┼─────┤                │  │                           │ │
+│  │  │     │     │     │                │  │  [Show All Settings ▼]    │ │
+│  │  │ btn │ btn │ btn │                │  │                           │ │
+│  │  │     │     │     │                │  └───────────────────────────┘ │
+│  │  └─────┴─────┴─────┘                │                                │
+│  └─────────────────────────────────────┘                                │
+│                                                                         │
+│  [◀ Prev Page]                              [Next Page ▶]              │ ← Page navigation
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
-#### Patrones de UI a Implementar
+### Componentes Reales de StreamController (del código)
 
-| Patrón SC | Implementación K2 Deck | Prioridad |
-|-----------|------------------------|-----------|
-| **Dark theme** | Tailwind dark mode | Alta |
-| **Device grid visual** | K2Grid.vue con 4×8 layout | Alta |
-| **Click-to-configure** | Click control → abre panel | Alta |
-| **Drag actions to grid** | ActionLibrary → K2Control | Alta |
-| **Real-time LED preview** | WebSocket `led_change` | Alta |
-| **Plugin store sidebar** | Lista de plugins instalados | Media |
-| **Page tabs** | LayerTabs.vue (0, 1, 2) | Alta |
-| **Folder breadcrumb** | FolderBreadcrumb.vue | Alta |
-| **Settings panel deslizable** | Panel derecho colapsable | Media |
-| **Integration status pills** | Header con OBS/Spotify/Twitch | Alta |
-| **MIDI monitor footer** | MidiMonitor.vue en bottom | Media |
+**Ubicación:** `StreamController-main/src/windows/mainWindow/elements/Sidebar/`
 
-#### Colores y Estilo (Tailwind)
+| Componente SC | Archivo | Función | Mapeo K2 Deck |
+|---------------|---------|---------|---------------|
+| `KeyEditor` | `elements/KeyEditor/` | Editor principal de tecla | `ControlConfig.vue` |
+| `StateSwitcher` | `StateSwitcher.py` | Cambiar entre estados (multi-action) | `LayerTabs.vue` |
+| `IconSelector` | `IconSelector.py` | Seleccionar icono para tecla | No aplica (sin LCD) |
+| `ImageEditor` | `ImageEditor.py` | Editar imagen de tecla | No aplica (sin LCD) |
+| `LabelEditor` | `LabelEditor.py` | Editar label de tecla | `ActionForm.vue` (campo name) |
+| `ActionManager` | `ActionManager.py` | Gestionar acciones de tecla | `ActionPicker.vue` + `ActionForm.vue` |
+
+### Eventos de ActionBase (del código fuente)
+
+**Ubicación:** `StreamController-main/src/backend/PluginManager/ActionBase.py`
+
+```python
+# Eventos de Key (botones)
+class KeyEvent(Enum):
+    DOWN = "down"           # Tecla presionada
+    UP = "up"               # Tecla liberada
+    SHORT_UP = "short_up"   # Press corto (< hold threshold)
+    HOLD_START = "hold_start"  # Inicio de hold
+    HOLD_STOP = "hold_stop"    # Fin de hold
+
+# Eventos de Dial (encoders - Stream Deck+)
+class DialEvent(Enum):
+    TURN_CW = "turn_cw"     # Giro clockwise
+    TURN_CCW = "turn_ccw"   # Giro counter-clockwise
+    # También: push down, push up
+
+# Eventos de Touchscreen (Stream Deck+)
+class TouchscreenEvent(Enum):
+    SHORT = "short"         # Tap corto
+    LONG = "long"           # Tap largo
+    DRAG = "drag"           # Drag gesture
+```
+
+**Mapeo a K2 Deck:**
+
+| SC Event | K2 Deck Equivalente |
+|----------|---------------------|
+| `KeyEvent.DOWN` | `note_on` con `value > 0` |
+| `KeyEvent.UP` | `note_on` con `value == 0` |
+| `KeyEvent.SHORT_UP` | Detectar por tiempo (< 500ms) |
+| `KeyEvent.HOLD_START` | Detectar por tiempo (> 500ms) |
+| `DialEvent.TURN_CW` | CC con `value == 1` (two's complement) |
+| `DialEvent.TURN_CCW` | CC con `value == 127` (two's complement) |
+
+### Plugin Store Modal (Observado en Screenshot)
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  [←]  Store                                              [Search: ___] │
+├─────────────────────────────────────────────────────────────────────────┤
+│  Categories:     All | Official | Community | Installed                 │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  ┌─────────────────────────┐  ┌─────────────────────────┐              │
+│  │ [icon]                  │  │ [icon]                  │              │
+│  │ OBS Controller          │  │ Spotify Integration     │              │
+│  │ ★★★★☆  v1.2.0          │  │ ★★★★★  v2.0.1          │              │
+│  │ Control OBS Studio...   │  │ Full Spotify control... │              │
+│  │ [Install]               │  │ [Installed ✓]           │              │
+│  └─────────────────────────┘  └─────────────────────────┘              │
+│                                                                         │
+│  ┌─────────────────────────┐  ┌─────────────────────────┐              │
+│  │ [icon]                  │  │ [icon]                  │              │
+│  │ Volume Mixer            │  │ Counter                 │              │
+│  │ ★★★★☆  v1.0.0          │  │ ★★★☆☆  v0.9.0          │              │
+│  │ Per-app volume...       │  │ Persistent counters...  │              │
+│  │ [Install]               │  │ [Install]               │              │
+│  └─────────────────────────┘  └─────────────────────────┘              │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### Paleta de Colores Real (Observada)
+
+StreamController usa GTK4 + libadwaita con tema oscuro:
 
 ```javascript
-// tailwind.config.js
+// tailwind.config.js - Basado en screenshots reales
 module.exports = {
   theme: {
     extend: {
       colors: {
-        // StreamController-inspired dark palette
-        'k2-bg': '#1a1a2e',
-        'k2-surface': '#16213e',
-        'k2-primary': '#0f3460',
-        'k2-accent': '#e94560',
-        'k2-success': '#00d26a',
-        'k2-warning': '#ffc107',
-        // LED colors
+        // Colores observados en StreamController
+        'k2-bg': '#242424',           // Fondo principal (gris muy oscuro)
+        'k2-surface': '#303030',       // Cards y sidebars
+        'k2-surface-hover': '#3d3d3d', // Hover state
+        'k2-border': '#484848',        // Bordes sutiles
+        'k2-text': '#ffffff',          // Texto principal
+        'k2-text-secondary': '#9a9a9a',// Texto secundario
+        'k2-accent': '#3584e4',        // Accent azul (libadwaita)
+        'k2-accent-hover': '#4a9cf8',  // Accent hover
+        'k2-success': '#33d17a',       // Verde éxito
+        'k2-warning': '#f6d32d',       // Amarillo warning
+        'k2-error': '#e01b24',         // Rojo error
+        // LED colors (K2 específico)
         'led-red': '#ff3333',
         'led-amber': '#ffaa00',
         'led-green': '#00ff66',
@@ -1025,37 +1293,223 @@ module.exports = {
 }
 ```
 
-#### Componentes Inspirados en SC
+### Patrones UI a Copiar
+
+| Patrón SC (Real) | Implementación K2 Deck | Prioridad |
+|------------------|------------------------|-----------|
+| **Two-panel layout** | Grid izq + Config der | Alta |
+| **Dark theme (libadwaita)** | Tailwind con palette arriba | Alta |
+| **Click-to-select key** | Click control → highlight + panel | Alta |
+| **State switcher tabs** | LayerTabs.vue (Layer 0/1/2) | Alta |
+| **Action dropdown** | ActionPicker.vue con categorías | Alta |
+| **Page navigation** | Folder navigation (bottom bar) | Alta |
+| **Deck selector (header)** | Profile dropdown | Media |
+| **Settings expandable** | "Show All Settings" collapse | Media |
+| **Store modal** | Plugin browser (futuro) | Baja |
+
+### Componente K2Control.vue (Adaptado de SC)
 
 ```vue
-<!-- K2Control.vue - Similar a SC key display -->
+<!-- K2Control.vue - Basado en KeyEditor de SC -->
 <template>
   <div
-    class="k2-control relative rounded-lg cursor-pointer transition-all"
+    class="k2-control relative rounded-lg cursor-pointer transition-all
+           bg-k2-surface hover:bg-k2-surface-hover border border-k2-border"
     :class="[
       isButton ? 'aspect-square' : 'aspect-[1/2]',
-      isSelected ? 'ring-2 ring-k2-accent' : '',
-      hasAction ? 'bg-k2-surface' : 'bg-k2-bg/50'
+      isSelected ? 'ring-2 ring-k2-accent' : ''
     ]"
     @click="$emit('select', control.id)"
   >
-    <!-- LED indicator (solo para buttons) -->
+    <!-- LED indicator (K2 específico - no existe en SC) -->
     <div
-      v-if="control.led"
-      class="absolute top-1 right-1 w-3 h-3 rounded-full"
-      :class="ledColorClass"
+      v-if="control.led && ledState"
+      class="absolute top-1 right-1 w-3 h-3 rounded-full shadow-lg"
+      :class="{
+        'bg-led-red': ledState === 'red',
+        'bg-led-amber': ledState === 'amber',
+        'bg-led-green': ledState === 'green'
+      }"
     />
 
-    <!-- Control label -->
-    <span class="text-xs text-gray-400">{{ control.id }}</span>
+    <!-- Control type indicator -->
+    <div class="absolute top-1 left-1">
+      <span class="text-[10px] text-k2-text-secondary uppercase">
+        {{ control.type }}
+      </span>
+    </div>
 
-    <!-- Action icon/name -->
-    <div v-if="hasAction" class="text-center">
-      <span class="text-sm">{{ actionName }}</span>
+    <!-- Action name (center) -->
+    <div class="flex items-center justify-center h-full p-2">
+      <span v-if="actionName" class="text-xs text-k2-text text-center truncate">
+        {{ actionName }}
+      </span>
+      <span v-else class="text-xs text-k2-text-secondary">
+        Empty
+      </span>
+    </div>
+
+    <!-- Control ID (bottom) -->
+    <div class="absolute bottom-1 left-1/2 -translate-x-1/2">
+      <span class="text-[10px] text-k2-text-secondary">{{ control.id }}</span>
     </div>
   </div>
 </template>
 ```
+
+### Diferencias Clave: SC vs K2 Deck
+
+| Aspecto | StreamController | K2 Deck |
+|---------|------------------|---------|
+| **Hardware** | Stream Deck (LCD buttons) | Xone:K2 (MIDI, LEDs tricolor) |
+| **Display** | Icons + text en cada tecla | Solo LEDs (R/A/G) |
+| **Encoders** | Solo Stream Deck+ | 6 encoders nativos |
+| **Faders** | No tiene | 4 faders nativos |
+| **States** | Multi-state por tecla | Layers (3) por todo el device |
+| **Framework** | GTK4 + Python | Vue.js + FastAPI |
+| **Plugins** | Python packages | Python packages (compatible) |
+
+### Layout Oficial Xone:K2 (de overlays oficiales Allen & Heath)
+
+> **Fuente:** `docs/K2_Overlays/K2_Master.pdf` y `K2_Blank.pdf`
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│  ❋XONE:K2                                   ALLEN&HEATH      │
+├──────────────────────────────────────────────────────────────┤
+│     Col 0        Col 1        Col 2        Col 3             │
+│                                                              │
+│   [◐ LED]      [◐ LED]      [◐ LED]      [◐ LED]   Row 0    │
+│    ◎ E1         ◎ E2         ◎ E3         ◎ E4     Encoders │
+│   [□ btn]      [□ btn]      [□ btn]      [□ btn]   +Push+LED│
+│                                                              │
+│    ◎ P1         ◎ P2         ◎ P3         ◎ P4     Row 1    │
+│   [□ btn]      [□ btn]      [□ btn]      [□ btn]   Pots     │
+│                                                    +Btn+LED │
+│    ◎ P5         ◎ P6         ◎ P7         ◎ P8     Row 2    │
+│    ◎ P9         ◎ P10        ◎ P11        ◎ P12    Pots×2   │
+│   [□ btn]      [□ btn]      [□ btn]      [□ btn]   +Btn+LED │
+│                                                              │
+│    ║ F1         ║ F2         ║ F3         ║ F4     Row 3    │
+│    ║            ║            ║            ║        Faders   │
+│    ║            ║            ║            ║        (largo)  │
+│    ●            ●            ●            ●                 │
+│                                                              │
+│  (MIDI CH)   (LATCH LAYERS)                                 │
+│   [□ A]       [□ B]        [□ C]        [□ D]     Row 4     │
+│   [□ E]       [□ F]        [□ G]        [□ H]     Buttons   │
+│   [□ I]       [□ J]        [□ K]        [□ L]     4×4 Grid  │
+│   [□ M]       [□ N]        [□ O]        [□ P]     +LED cada │
+│                                                              │
+│   LAYER      ◎ SCROLL    ◎ SEL        SHIFT      Row 5     │
+│   [□]        (encoder)   (encoder)    [□]        Control   │
+│              POWER ON SCR            EXIT SETUP             │
+└──────────────────────────────────────────────────────────────┘
+```
+
+#### Conteo de Controles (por Layer)
+
+| Tipo | Cantidad | Con LED | MIDI Type | Notas |
+|------|----------|---------|-----------|-------|
+| **Encoders** | 4 (+2 system) | Sí (4) | CC (two's complement) | Push = Note |
+| **Potentiometers** | 12 | No | CC (0-127) | Absoluto |
+| **Faders** | 4 | No | CC (0-127) | Absoluto, ~60 msg/sec |
+| **Buttons** | 16 (A-P) + 12 | Sí (28) | Note On/Off | Tri-color LED |
+| **Layer/Shift** | 2 | Sí | Note On/Off | Botones especiales |
+| **Total** | **52** | **34 LEDs** | | ×3 Layers = 156 MIDI msgs |
+
+#### Mapeo de IDs para Web UI
+
+```javascript
+// utils/k2Layout.js
+export const K2_LAYOUT = {
+  rows: [
+    // Row 0: Encoders with LED + push button
+    { type: 'encoder-row', controls: [
+      { id: 'E1', type: 'encoder', hasLed: true, hasPush: true },
+      { id: 'E2', type: 'encoder', hasLed: true, hasPush: true },
+      { id: 'E3', type: 'encoder', hasLed: true, hasPush: true },
+      { id: 'E4', type: 'encoder', hasLed: true, hasPush: true },
+    ]},
+    // Row 1: Pots + buttons with LED
+    { type: 'pot-btn-row', controls: [
+      { id: 'P1', type: 'pot' }, { id: 'P2', type: 'pot' },
+      { id: 'P3', type: 'pot' }, { id: 'P4', type: 'pot' },
+    ], buttons: [
+      { id: 'B1', type: 'button', hasLed: true },
+      { id: 'B2', type: 'button', hasLed: true },
+      { id: 'B3', type: 'button', hasLed: true },
+      { id: 'B4', type: 'button', hasLed: true },
+    ]},
+    // Row 2: Pots ×2 + buttons with LED
+    { type: 'pot-pot-btn-row', controls: [
+      { id: 'P5', type: 'pot' }, { id: 'P6', type: 'pot' },
+      { id: 'P7', type: 'pot' }, { id: 'P8', type: 'pot' },
+      { id: 'P9', type: 'pot' }, { id: 'P10', type: 'pot' },
+      { id: 'P11', type: 'pot' }, { id: 'P12', type: 'pot' },
+    ], buttons: [
+      { id: 'B5', type: 'button', hasLed: true },
+      { id: 'B6', type: 'button', hasLed: true },
+      { id: 'B7', type: 'button', hasLed: true },
+      { id: 'B8', type: 'button', hasLed: true },
+    ]},
+    // Row 3: Faders (tall)
+    { type: 'fader-row', controls: [
+      { id: 'F1', type: 'fader' }, { id: 'F2', type: 'fader' },
+      { id: 'F3', type: 'fader' }, { id: 'F4', type: 'fader' },
+    ]},
+    // Row 4-7: 4×4 Button grid (A-P)
+    { type: 'button-row', controls: [
+      { id: 'A', type: 'button', hasLed: true, label: 'MIDI CH' },
+      { id: 'B', type: 'button', hasLed: true, label: 'LATCH' },
+      { id: 'C', type: 'button', hasLed: true },
+      { id: 'D', type: 'button', hasLed: true },
+    ]},
+    { type: 'button-row', controls: [
+      { id: 'E', type: 'button', hasLed: true },
+      { id: 'F', type: 'button', hasLed: true },
+      { id: 'G', type: 'button', hasLed: true },
+      { id: 'H', type: 'button', hasLed: true },
+    ]},
+    { type: 'button-row', controls: [
+      { id: 'I', type: 'button', hasLed: true },
+      { id: 'J', type: 'button', hasLed: true },
+      { id: 'K', type: 'button', hasLed: true },
+      { id: 'L', type: 'button', hasLed: true },
+    ]},
+    { type: 'button-row', controls: [
+      { id: 'M', type: 'button', hasLed: true },
+      { id: 'N', type: 'button', hasLed: true },
+      { id: 'O', type: 'button', hasLed: true },
+      { id: 'P', type: 'button', hasLed: true },
+    ]},
+    // Row 8: Control row (Layer, Scroll/Sel encoders, Shift)
+    { type: 'control-row', controls: [
+      { id: 'LAYER', type: 'button', hasLed: true, special: true },
+      { id: 'SCROLL', type: 'encoder', hasPush: true, special: true },
+      { id: 'SEL', type: 'encoder', hasPush: true, special: true },
+      { id: 'SHIFT', type: 'button', hasLed: true, special: true },
+    ]},
+  ],
+  totalControls: 52,
+  totalLeds: 34,
+  layers: 3,
+}
+```
+
+### Mejoras UX Propuestas sobre StreamController
+
+Basado en el layout real del K2, estas mejoras aprovechan las ventajas del hardware:
+
+| Mejora | SC no tiene | K2 Deck implementa | Prioridad |
+|--------|-------------|-------------------|-----------|
+| **Grid visual real** | Buttons uniformes | Layout mixto (enc/pot/fader/btn) | Alta |
+| **Valores en tiempo real** | Solo on/off | Faders/encoders muestran valor | Alta |
+| **MIDI Learn visual** | Config manual | Click control + mueve K2 = asigna | Alta |
+| **Undo/Redo** | No visible | Ctrl+Z/Y con historial | Media |
+| **Templates** | Solo plugins | Presets: Spotify, OBS, Gaming | Media |
+| **Keyboard shortcuts** | Mouse-only | Tab, 1-3, /, Ctrl+S | Media |
+| **Status enriquecido** | Pills básicos | K2 + OBS + Spotify + Twitch detalle | Media |
 
 ---
 
@@ -1856,7 +2310,7 @@ class TTSAction(Action):
 | 7 | Text-to-Speech | ✅ DONE | ~90 | - |
 | 8 | Folders/Pages | ✅ DONE | ~545 | - |
 | 9 | Twitch Integration | ✅ DONE | ~570 | - |
-| 10 | **Web UI Backend** | ❌ TODO | ~900 | Alta |
+| 10 | Web UI Backend | ✅ DONE | ~850 | - |
 | 11 | **Web UI Frontend** | ❌ TODO | ~3000 | Alta |
 | 12 | **Timer/Countdown** | ❌ TODO | ~120 | Media |
 | 13 | **Plugin System** | ❌ TODO | ~600 | Baja |
@@ -1865,7 +2319,7 @@ class TTSAction(Action):
 
 ## Testing Strategy
 
-### Estado Actual (309 tests ✅, 7 skipped)
+### Estado Actual (360 tests ✅, 7 skipped)
 
 | Módulo | Tests | Cobertura |
 |--------|-------|-----------|
@@ -1874,6 +2328,7 @@ class TTSAction(Action):
 | `core/mapping_engine.py` | 11 | Config loading, resolution, multi-zone |
 | `core/throttle.py` | 13 | Rate limiting, debounce |
 | `core/obs_client.py` | 19 | Connection, reconnect, operations |
+| `core/analog_state.py` | 19 | Singleton, persistence, callbacks, debounce |
 | `feedback/led_colors.py` | 10 | Color offsets, note calculation |
 | `actions/hotkey.py` | 7 | Tap, hold modes, relative |
 | `actions/multi.py` | 14 | Sequence execution, toggle state |
@@ -1888,6 +2343,7 @@ class TTSAction(Action):
 | `actions/tts.py` | 7 | Mock pyttsx3, engine config |
 | `core/folders.py` | 23 | Stack navigation, callbacks, max depth |
 | `actions/twitch.py` | 24 | Mock twitchAPI, actions, rate limiting |
+| `web/*` | 32 | Config API, Profiles, K2 state, WebSocket |
 
 ### Tests Requeridos por Feature Pendiente
 

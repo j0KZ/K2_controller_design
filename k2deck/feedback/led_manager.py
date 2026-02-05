@@ -68,6 +68,9 @@ class LedManager:
         with self._lock:
             self._turn_off(base_note)
 
+    # Alias for route compatibility
+    set_led_off = turn_off
+
     def toggle_led(
         self,
         base_note: int,
@@ -164,6 +167,15 @@ class LedManager:
         with self._lock:
             return self._state.get(base_note)
 
+    def get_all_states(self) -> dict[int, str]:
+        """Get all active LED states.
+
+        Returns:
+            Dict of base_note -> color for LEDs that are on.
+        """
+        with self._lock:
+            return {k: v for k, v in self._state.items() if v is not None}
+
     def restore_defaults(self, defaults: list[dict]) -> None:
         """Restore LEDs to default states.
 
@@ -201,3 +213,41 @@ class LedManager:
 
         thread = threading.Thread(target=animation_thread, daemon=True)
         thread.start()
+
+
+# =============================================================================
+# Singleton accessor
+# =============================================================================
+
+_led_manager: LedManager | None = None
+
+
+def get_led_manager() -> LedManager:
+    """Get or create the global LedManager singleton.
+
+    Returns:
+        The shared LedManager instance.
+
+    Raises:
+        RuntimeError: If no LedManager has been initialized.
+    """
+    global _led_manager
+    if _led_manager is None:
+        raise RuntimeError(
+            "LedManager not initialized. Call init_led_manager() first."
+        )
+    return _led_manager
+
+
+def init_led_manager(midi_output: "MidiOutput") -> LedManager:
+    """Initialize the global LedManager singleton.
+
+    Args:
+        midi_output: MidiOutput instance for sending LED commands.
+
+    Returns:
+        The initialized LedManager instance.
+    """
+    global _led_manager
+    _led_manager = LedManager(midi_output)
+    return _led_manager

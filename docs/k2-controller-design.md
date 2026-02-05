@@ -158,10 +158,11 @@ BTN D    🔀 Shuffle*    🔕 DnD*        📝 Format doc   ⭐ Bookmark
 │  │(pystray) │    │ (CC rate) │    │ └──────────────┘ │   │
 │  └──────────┘    └───────────┘    └──────────────────┘   │
 │                                                          │
-│  ┌──────────┐                                            │
-│  │ Web UI   │  ← Fase 3                                 │
-│  │ (Flask)  │                                            │
-│  └──────────┘                                            │
+│  ┌──────────┐    ┌───────────┐                           │
+│  │ Web UI   │    │  Analog   │                           │
+│  │(FastAPI) │    │  State    │  ← Persistencia faders    │
+│  │ + Vue.js │    │  Manager  │    ~/.k2deck/analog.json  │
+│  └──────────┘    └───────────┘                           │
 └──────────────────────────────────────────────────────────┘
 
 Threading model:
@@ -170,6 +171,8 @@ Threading model:
   Action thread    → ThreadPoolExecutor (max_workers=4)
   Throttle         → Rate-limit CC actions (faders/knobs: max 30 calls/sec)
   Reconnect thread → Si K2 se desconecta, retry cada 5s
+  Web server       → uvicorn (FastAPI) en thread separado
+  WebSocket        → Broadcast en tiempo real (LEDs, analog, events)
 ```
 
 ---
@@ -206,7 +209,13 @@ k2deck/
 │   ├── midi_output.py      # MIDI output (LEDs)
 │   ├── mapping_engine.py   # MIDI event → action
 │   ├── profile_manager.py  # Profile load/switch/hot-reload
-│   └── throttle.py         # Rate limiter para CC (faders/knobs)
+│   ├── throttle.py         # Rate limiter para CC (faders/knobs)
+│   ├── analog_state.py     # Persistencia posiciones faders/pots
+│   ├── folders.py          # Navegación de folders (sub-pages)
+│   ├── counters.py         # Contadores persistentes
+│   ├── obs_client.py       # OBS WebSocket client
+│   ├── twitch_client.py    # Twitch API client
+│   └── spotify_client.py   # Spotify API client
 ├── actions/
 │   ├── __init__.py
 │   ├── base.py             # Action ABC
@@ -230,7 +239,27 @@ k2deck/
 │   ├── test_hotkey_action.py
 │   ├── test_volume_action.py
 │   ├── test_led_manager.py
-│   └── test_throttle.py
+│   ├── test_throttle.py
+│   ├── test_folders.py
+│   ├── test_counters.py
+│   ├── test_twitch.py
+│   └── test_obs.py
+├── web/
+│   ├── __init__.py
+│   ├── server.py           # FastAPI app + CORS + lifespan
+│   ├── routes/
+│   │   ├── config.py       # /api/config/*
+│   │   ├── profiles.py     # /api/profiles/*
+│   │   ├── k2.py           # /api/k2/* (state, analog, LEDs)
+│   │   └── integrations.py # /api/integrations/*
+│   ├── websocket/
+│   │   └── manager.py      # WebSocket broadcast (LEDs, analog, events)
+│   └── frontend/           # Vue.js app (built → dist/)
+│       ├── src/
+│       │   ├── components/ # K2Grid, K2Fader, K2Pot, K2Button...
+│       │   ├── stores/     # Pinia: config, k2state, analogState
+│       │   └── composables/# useWebSocket, useApi
+│       └── dist/           # Built files (served by FastAPI)
 ├── requirements.txt
 └── README.md
 ```
@@ -414,17 +443,54 @@ Todas las action types que el mapping engine soporta:
 
 ## Flujos Principales
 
-### 1. Fader → Volumen de App (con throttle)
+### 1. Fader → Volumen de App (con throttle + sync)
 
 ```
 K2 Fader move (60+ msgs/sec posibles)
   → CC message (ch 16, cc# X, value 0-127)
   → Throttle: ¿pasaron >33ms desde último call? Si no, skip.
+  → AnalogStateManager.update(cc, value)  # Guardar posición
+  → WebSocket broadcast: { type: "analog_change", cc, value }
   → mapping_engine.resolve("cc_absolute", X)
   → VolumeAction.execute(target="Spotify.exe", value=0.75)
   → pycaw: set Spotify volume to 75%
      → Session cache: refresh cada 5s, no en cada call
 ```
+
+### Sincronización de Controles Analógicos
+
+**Problema:** Faders y pots son controles absolutos. Si el usuario mueve uno mientras
+la app está cerrada, al reconectar hay desincronización.
+
+**Solución: Modo JUMP (preciso)**
+
+```
+Al conectar K2:
+  → Cargar ~/.k2deck/analog_state.json (última foto)
+  → UI muestra valores guardados
+  → Cuando usuario mueve un control → salta al valor físico real
+  → Puede haber salto, pero ES PRECISO
+  → Regla: lo que muevo = lo que pasa
+```
+
+```python
+# core/analog_state.py
+class AnalogStateManager:
+    """Persiste posiciones de faders/pots."""
+
+    STATE_FILE = Path.home() / ".k2deck" / "analog_state.json"
+
+    def update(self, cc: int, value: int) -> None:
+        """Actualizar y guardar (debounced 1/sec)."""
+        self._positions[cc] = value
+
+    def get_all(self) -> dict[int, int]:
+        """Estado actual de todos los controles."""
+        return self._positions
+```
+
+**Limitación hardware:** El K2 no reporta estado al conectarse — solo envía MIDI
+cuando hay movimiento. Por eso guardamos "foto" y usamos modo jump.
 
 ### 2. Botón → Hotkey con LED feedback
 
