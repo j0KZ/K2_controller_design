@@ -301,6 +301,13 @@ class K2DeckApp:
         try:
             self._mapping_engine.load_config(self._config_path)
             self._setup_defaults()
+
+            # Reset OSC action state for clean profile switch
+            from k2deck.actions.osc_send import OscSendRelativeAction, OscSendTriggerAction
+
+            OscSendRelativeAction.reset_accumulators()
+            OscSendTriggerAction.reset_toggle_states()
+
             logger.info("Config reloaded successfully")
         except Exception as e:
             logger.error("Failed to reload config: %s", e)
@@ -397,6 +404,11 @@ class K2DeckApp:
         if self._midi_output:
             self._midi_output.close()
         self._executor.shutdown(wait=False)
+
+        # Close OSC sockets
+        from k2deck.core.osc import OscSender
+
+        OscSender.close_all()
 
         logger.info("K2 Deck stopped")
         return 0

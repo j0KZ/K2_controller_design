@@ -1,5 +1,43 @@
 # K2 Deck - Changelog
 
+## [0.4.0] - 2026-02-13
+
+### Added
+- **OSC Send Actions** — Forward MIDI events to Pure Data via OSC UDP
+  - `osc_send` (cc_absolute): Faders/pots → normalize → curve → scale → send OSC
+  - `osc_send_relative` (cc_relative): Encoders → accumulate two's complement deltas → send OSC
+  - `osc_send_trigger` (note_on): Buttons → bang or toggle → send OSC
+  - New files: `actions/osc_send.py`, `core/osc.py`
+  - 77 new tests across `tests/test_osc.py` and `tests/test_osc_send_action.py`
+
+- **OSC 1.0 Encoder** (`core/osc.py`) — Minimal OSC encoder + UDP sender, zero external dependencies
+  - `OscSender` keyed singleton: one persistent socket per (host, port) destination
+  - Thread-safe with lazy socket creation
+  - Functions: `osc_string()`, `osc_int()`, `osc_float()`, `build_osc_message()`
+
+### Changed
+- Registered 3 new action types in `core/mapping_engine.py`
+- Added OSC socket cleanup on shutdown (`k2deck.py`)
+- Added accumulator/toggle state reset on config reload (`k2deck.py`)
+
+### Cross-project
+- Updated `mcp_pure_data` (future: `synthlab-mcp`) config generator to emit
+  `osc_send` / `osc_send_relative` / `osc_send_trigger` actions instead of `noop`
+  - Modified: `src/controllers/k2-deck-config.ts`
+  - Updated tests: `tests/controllers/controller.test.ts`
+  - All 619 tests passing
+
+### Architecture
+```
+K2 hardware → K2 Deck (MIDI) → OSC UDP → Pure Data (bridge patch)
+                 ↓
+          LEDs + System Actions + Web UI (unchanged)
+```
+K2 Deck owns the MIDI port. Pure Data receives parameter values via OSC on port 9000.
+This solves the single-MIDI-port constraint without losing any existing K2 Deck functionality.
+
+---
+
 ## [0.3.0] - 2025-02-04
 
 ### Added

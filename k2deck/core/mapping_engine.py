@@ -45,6 +45,7 @@ from k2deck.actions.twitch import (
     TwitchMarkerAction,
     TwitchTitleAction,
 )
+from k2deck.actions.osc_send import OscSendAction, OscSendRelativeAction, OscSendTriggerAction
 from k2deck.actions.volume import VolumeAction
 from k2deck.actions.window import FocusAction, LaunchAction
 from k2deck.core import folders, layers
@@ -107,6 +108,10 @@ ACTION_TYPES: dict[str, type[Action]] = {
     "twitch_chat": TwitchChatAction,
     "twitch_title": TwitchTitleAction,
     "twitch_game": TwitchGameAction,
+    # OSC send actions (Pure Data bridge)
+    "osc_send": OscSendAction,
+    "osc_send_relative": OscSendRelativeAction,
+    "osc_send_trigger": OscSendTriggerAction,
 }
 
 
