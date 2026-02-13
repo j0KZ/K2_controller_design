@@ -19,3 +19,5 @@ httpx>=0.26.0
 # Streaming integrations
 obsws-python>=1.7.0
 twitchAPI>=4.2.0
+# MCP (Claude Desktop integration)
+mcp>=1.0.0

@@ -181,7 +181,7 @@ def handle_client_message(data: dict, websocket: WebSocket) -> None:
             from k2deck.core.midi_listener import MidiEvent
 
             try:
-                action = create_action(action_type, action_config)
+                action = create_action({"action": action_type, **action_config})
                 if action:
                     # Create a fake note_on event
                     event = MidiEvent(

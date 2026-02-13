@@ -19,6 +19,8 @@ Python app that turns an Allen & Heath Xone:K2 MIDI controller into a system-wid
 - **System tray:** `pystray` + `Pillow`
 - **Config hot-reload:** `watchdog`
 - **Web UI:** `fastapi` + `uvicorn` + Vue.js
+- **MCP:** `mcp` (Claude Desktop integration via stdio)
+- **HTTP client:** `httpx` (MCP → REST API bridge)
 - **Logging:** stdlib `logging`
 
 ## Project Structure
@@ -39,6 +41,8 @@ k2deck/
 │   ├── analog_state.py     # Persist fader/pot positions (Jump mode)
 │   ├── folders.py          # Button sub-pages navigation
 │   ├── counters.py         # Persistent counters for actions
+│   ├── timer_manager.py    # Countdown timer manager (singleton)
+│   ├── osc.py              # OSC 1.0 encoder + UDP sender
 │   ├── obs_client.py       # OBS WebSocket client
 │   ├── twitch_client.py    # Twitch API client
 │   └── spotify_client.py   # Spotify API wrapper
@@ -52,7 +56,9 @@ k2deck/
 │   ├── obs.py              # OBS scene/source control
 │   ├── twitch.py           # Twitch stream actions
 │   ├── window.py           # pywin32 focus/launch
-│   └── system.py           # Lock, screenshot, etc.
+│   ├── system.py           # Lock, screenshot, etc.
+│   ├── timer.py            # Timer start/stop/toggle actions
+│   └── osc_send.py         # OSC send actions (Pure Data bridge)
 ├── feedback/
 │   ├── __init__.py
 │   ├── led_manager.py      # LED state machine
@@ -71,6 +77,11 @@ k2deck/
 │   └── frontend/           # Vue.js SPA (built assets)
 │       ├── index.html
 │       └── assets/
+├── mcp/
+│   ├── __init__.py
+│   ├── __main__.py         # `python -m k2deck.mcp` entry
+│   ├── client.py           # HTTP client for REST API (httpx)
+│   └── server.py           # MCP server (stdio, 10 tools)
 ├── tools/
 │   ├── __init__.py
 │   ├── midi_learn.py       # CLI: discover controls + LED test
@@ -157,6 +168,9 @@ pip install -r requirements.txt
 
 # Run the app
 python -m k2deck
+
+# Run MCP server (Claude Desktop integration)
+python -m k2deck.mcp
 
 # Run MIDI learn tool
 python -m k2deck.tools.midi_learn

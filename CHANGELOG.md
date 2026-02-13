@@ -4,6 +4,37 @@ All notable changes to K2 Deck will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.5.0] - 2026-02-13
+
+### Added
+
+#### MCP Server (Claude Desktop Integration)
+- 10 MCP tools exposing full K2 Deck control: state, LEDs, layers, profiles, integrations, actions, timers
+- HTTP client wrapper (`mcp/client.py`): lazy-init `httpx.AsyncClient` singleton
+- Auto-starts K2 Deck web server via orphaned subprocess
+- stdio transport for Claude Desktop integration
+- New files: `mcp/__init__.py`, `mcp/client.py`, `mcp/server.py`, `mcp/__main__.py`
+
+#### Timer/Countdown Actions
+- `timer_start` / `timer_stop` / `timer_toggle`: Named countdown timers with background threads
+- Completion callbacks: execute any K2 Deck action when timer reaches zero
+- `TimerManager` singleton with 1-second tick resolution
+- New files: `core/timer_manager.py`, `actions/timer.py`
+
+#### REST API — Trigger & Timers
+- `POST /api/k2/trigger`: Execute any action by type and config
+- `GET /api/k2/timers`: Get all timer statuses
+- Non-blocking execution via `asyncio.to_thread()`
+
+### Fixed
+- `create_action` call in `web/server.py` WebSocket handler (passed string instead of dict)
+
+### Tests
+- 66 new tests (26 MCP + 33 timer + 7 trigger endpoint)
+- Total: 643 collected (636 passed, 7 skipped)
+
+---
+
 ## [Unreleased]
 
 ### Added

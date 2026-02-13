@@ -11,6 +11,9 @@ Turn your Allen & Heath Xone:K2 into a system-wide macro controller for Spotify,
 - **Brave shortcuts** (Tab switching, Refresh, Close tab, DevTools)
 - **Mouse scroll** via encoders for Discord/VS Code
 - **LED feedback** with toggle, flash, and static modes
+- **Timer/Countdown** with completion callbacks (pomodoro, stream breaks)
+- **OSC bridge** to Pure Data for audio synthesis control
+- **Claude Desktop integration** via MCP (10 tools for full K2 control)
 - **Auto-reconnect** when K2 is disconnected/reconnected
 - **System tray** for background operation
 
@@ -68,6 +71,9 @@ python -m k2deck
 # Run with debug logging
 python -m k2deck --debug
 
+# Run MCP server (Claude Desktop integration)
+python -m k2deck.mcp
+
 # Run MIDI learn tool
 python -m k2deck --learn
 # or
@@ -123,6 +129,12 @@ Configuration is in JSON format at `k2deck/config/default.json`.
 | `volume` | Per-app volume control |
 | `media_key` | Media key (play, next, etc.) |
 | `system` | System command (lock, screenshot) |
+| `timer_start` | Start a countdown timer |
+| `timer_stop` | Stop a running timer |
+| `timer_toggle` | Toggle timer on/off |
+| `osc_send` | Send OSC message (fader/pot) |
+| `osc_send_relative` | Send OSC message (encoder) |
+| `osc_send_trigger` | Send OSC bang/toggle (button) |
 | `noop` | Placeholder (no action) |
 
 ### LED modes:
@@ -132,6 +144,28 @@ Configuration is in JSON format at `k2deck/config/default.json`.
 | `toggle` | Toggle between on_color and off_color |
 | `flash` | Flash N times then return to previous |
 | `static` | Set color once |
+
+## Claude Desktop Integration (MCP)
+
+K2 Deck exposes 10 MCP tools so Claude can control your K2 via natural language:
+
+- Read controller state, layout, LED colors, analog positions
+- Set LEDs, switch layers, activate profiles
+- Trigger any action (hotkeys, timers, sound, etc.)
+- Check integration status (OBS, Spotify, Twitch)
+
+### Setup
+
+Add to `claude_desktop_config.json`:
+
+```json
+"k2deck": {
+    "command": "python",
+    "args": ["<path-to>/K2_controller_design/k2deck/mcp/server.py"]
+}
+```
+
+The MCP server auto-starts the K2 Deck web server if it's not already running.
 
 ## Discord Setup
 
@@ -184,20 +218,28 @@ k2deck/
 │   ├── midi_listener.py   # MIDI input + auto-reconnect
 │   ├── midi_output.py     # MIDI output (LEDs)
 │   ├── mapping_engine.py  # Event → Action resolver
-│   └── throttle.py        # Rate limiter for CC
+│   ├── throttle.py        # Rate limiter for CC
+│   ├── timer_manager.py   # Countdown timer manager
+│   └── osc.py             # OSC 1.0 encoder + UDP sender
 ├── actions/
 │   ├── base.py            # Action ABC
 │   ├── hotkey.py          # Keyboard simulation
-│   ├── mouse_scroll.py    # Mouse scroll
 │   ├── volume.py          # Per-app volume (pycaw)
+│   ├── timer.py           # Timer start/stop/toggle
+│   ├── osc_send.py        # OSC send to Pure Data
 │   └── system.py          # System commands
 ├── feedback/
 │   ├── led_colors.py      # Color constants
 │   └── led_manager.py     # LED state machine
+├── mcp/
+│   ├── client.py          # HTTP client for REST API
+│   └── server.py          # MCP server (10 tools)
+├── web/
+│   ├── server.py          # FastAPI + WebSocket
+│   └── routes/            # REST API endpoints
 ├── tools/
 │   └── midi_learn.py      # MIDI discovery tool
-└── tests/
-    └── ...
+└── tests/                 # 643 tests
 ```
 
 ## License

@@ -12,6 +12,8 @@ Endpoints:
 - GET  /api/k2/midi/devices  - List MIDI devices
 - GET  /api/k2/midi/status   - K2 connection status
 - POST /api/k2/midi/reconnect - Force reconnect
+- POST /api/k2/trigger       - Execute an action by config
+- GET  /api/k2/timers        - Timer status
 """
 
 import logging
@@ -415,3 +417,71 @@ async def reconnect_midi() -> dict[str, str]:
     """
     # TODO: Trigger reconnect in MIDI listener
     return {"message": "Reconnection triggered"}
+
+
+# =============================================================================
+# Action Trigger & Timer Endpoints
+# =============================================================================
+
+
+class TriggerActionRequest(BaseModel):
+    """Request body for triggering an action."""
+
+    action: str
+    config: dict[str, Any] = {}
+
+
+@router.post("/trigger")
+async def trigger_action(body: TriggerActionRequest) -> dict[str, str]:
+    """Execute an action by type and config.
+
+    Creates the action from the config and executes it with a synthetic
+    note_on MIDI event. Runs in a thread to avoid blocking the event loop.
+
+    Args:
+        body: Action type and config.
+
+    Returns:
+        Success message.
+
+    Raises:
+        HTTPException: If action type is unknown.
+    """
+    from k2deck.core.action_factory import create_action
+    from k2deck.core.midi_listener import MidiEvent
+
+    action_config = {**body.config, "action": body.action}
+    action = create_action(action_config)
+    if not action:
+        raise HTTPException(
+            status_code=400, detail=f"Unknown action type: {body.action}"
+        )
+
+    event = MidiEvent(
+        type="note_on", channel=16, note=0, cc=None, value=127, timestamp=0.0
+    )
+
+    import asyncio
+
+    try:
+        await asyncio.to_thread(action.execute, event)
+    except Exception as e:
+        logger.error("Action '%s' execution error: %s", body.action, e)
+        raise HTTPException(
+            status_code=500, detail=f"Action execution error: {e}"
+        )
+
+    logger.info("Triggered action: %s", body.action)
+    return {"message": f"Action '{body.action}' triggered"}
+
+
+@router.get("/timers")
+async def get_timers() -> dict[str, dict]:
+    """Get status of all active timers.
+
+    Returns:
+        Dict of timer name to status (duration, remaining, running).
+    """
+    from k2deck.core.timer_manager import get_timer_manager
+
+    return get_timer_manager().get_all()

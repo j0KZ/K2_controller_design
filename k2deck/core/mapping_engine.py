@@ -46,6 +46,7 @@ from k2deck.actions.twitch import (
     TwitchTitleAction,
 )
 from k2deck.actions.osc_send import OscSendAction, OscSendRelativeAction, OscSendTriggerAction
+from k2deck.actions.timer import TimerStartAction, TimerStopAction, TimerToggleAction
 from k2deck.actions.volume import VolumeAction
 from k2deck.actions.window import FocusAction, LaunchAction
 from k2deck.core import folders, layers
@@ -112,6 +113,10 @@ ACTION_TYPES: dict[str, type[Action]] = {
     "osc_send": OscSendAction,
     "osc_send_relative": OscSendRelativeAction,
     "osc_send_trigger": OscSendTriggerAction,
+    # Timer actions
+    "timer_start": TimerStartAction,
+    "timer_stop": TimerStopAction,
+    "timer_toggle": TimerToggleAction,
 }
 
 

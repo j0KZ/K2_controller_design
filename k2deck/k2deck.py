@@ -410,6 +410,11 @@ class K2DeckApp:
 
         OscSender.close_all()
 
+        # Stop all timers
+        from k2deck.core.timer_manager import get_timer_manager
+
+        get_timer_manager().stop_all()
+
         logger.info("K2 Deck stopped")
         return 0
 

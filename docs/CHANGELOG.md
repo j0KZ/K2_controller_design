@@ -1,5 +1,54 @@
 # K2 Deck - Changelog
 
+## [0.5.0] - 2026-02-13
+
+### Added
+- **MCP Server** — Claude Desktop integration via Model Context Protocol
+  - 10 MCP tools: `get_k2_state`, `get_k2_layout`, `set_led`, `set_layer`,
+    `list_profiles`, `get_profile`, `activate_profile`, `get_integrations`,
+    `trigger_action`, `get_timers`
+  - HTTP client wrapper (`mcp/client.py`): lazy-init singleton using `httpx.AsyncClient`
+  - Auto-starts K2 Deck web server if not already running (orphaned subprocess)
+  - stdio transport for Claude Desktop, direct execution via `python k2deck/mcp/server.py`
+  - New files: `mcp/__init__.py`, `mcp/client.py`, `mcp/server.py`, `mcp/__main__.py`
+  - 26 new tests across `test_mcp_client.py`, `test_mcp_server.py`
+
+- **Timer/Countdown Actions** — Named countdown timers with completion callbacks
+  - `timer_start`: Start a named timer (restarts if already running)
+  - `timer_stop`: Stop a running timer
+  - `timer_toggle`: Toggle a timer on/off
+  - `on_complete` callback: Execute any K2 Deck action when timer finishes
+    (e.g., play sound, TTS announcement)
+  - `TimerManager` singleton with background threads, 1-second tick resolution
+  - New files: `core/timer_manager.py`, `actions/timer.py`
+  - 33 new tests across `test_timer_manager.py`, `test_timer_action.py`
+
+- **REST API — Trigger & Timers endpoints**
+  - `POST /api/k2/trigger`: Execute any action by type and config dict
+  - `GET /api/k2/timers`: Get status of all running timers
+  - Uses `asyncio.to_thread()` for non-blocking action execution
+  - 7 new tests in `test_k2_routes_trigger.py`
+
+### Fixed
+- **`create_action` bug in `web/server.py`**: WebSocket handler passed
+  `create_action(action_type, action_config)` (string as config), now correctly
+  passes `create_action({"action": action_type, **action_config})`
+
+### Architecture
+```
+Claude Desktop ←(stdio)→ MCP Server ←(HTTP)→ K2 Deck REST API (:8420)
+                                                     ↓
+                                              MIDI + LEDs + Actions
+```
+The MCP server is a separate process that translates Claude's natural language
+tool calls into K2 Deck REST API requests. It auto-starts the web server and
+handles connection errors gracefully.
+
+### Tests
+- 643 collected (636 passed, 7 skipped), 66 new tests for this release
+
+---
+
 ## [0.4.0] - 2026-02-13
 
 ### Added
