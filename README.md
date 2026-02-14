@@ -156,11 +156,11 @@ K2 Deck exposes 10 MCP tools so Claude can control your K2 via natural language:
 
 ### Setup
 
-Add to `claude_desktop_config.json`:
+Add to `claude_desktop_config.json` (use the **venv Python**, not system Python — the venv has all required dependencies):
 
 ```json
 "k2deck": {
-    "command": "python",
+    "command": "<path-to>/K2_controller_design/.venv/Scripts/python.exe",
     "args": ["<path-to>/K2_controller_design/k2deck/mcp/server.py"]
 }
 ```
