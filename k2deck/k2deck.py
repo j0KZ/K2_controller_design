@@ -46,26 +46,53 @@ def setup_logging(debug: bool = False) -> None:
 
 
 def create_tray_icon() -> "Image.Image | None":
-    """Create a simple tray icon."""
+    """Create the K2 Deck tray icon (orange with dark 'K2' text).
+
+    Uses a 256x256 canvas so Windows has high-res source material
+    when downscaling to 16x16 / 24x24 taskbar size.
+    """
     if Image is None:
         return None
 
-    # Create a simple colored square icon
-    size = 64
+    from PIL import ImageFont
+
+    size = 256
     image = Image.new("RGBA", (size, size), (0, 0, 0, 0))
     draw = ImageDraw.Draw(image)
 
-    # Draw a K2-inspired icon (rounded square with "K2" text concept)
+    # Bright saturated orange rounded square
+    pad = 8
     draw.rounded_rectangle(
-        [4, 4, size - 4, size - 4],
-        radius=8,
-        fill=(100, 100, 200),
-        outline=(60, 60, 160),
-        width=2,
+        [pad, pad, size - pad, size - pad],
+        radius=40,
+        fill=(255, 160, 0),
+        outline=(200, 100, 0),
+        width=8,
     )
-    # Draw inner detail
-    draw.rectangle([16, 16, 24, 48], fill=(200, 200, 255))
-    draw.rectangle([32, 16, 48, 48], fill=(200, 200, 255))
+
+    # Draw K and 2 separately for tight spacing
+    try:
+        font = ImageFont.truetype("arialbd.ttf", 190)
+    except OSError:
+        font = ImageFont.load_default()
+
+    k_bbox = font.getbbox("K")
+    two_bbox = font.getbbox("2")
+    k_w = k_bbox[2] - k_bbox[0]
+    two_w = two_bbox[2] - two_bbox[0]
+    gap = -18
+    total_w = k_w + gap + two_w
+    x_start = (size - total_w) // 2
+    y = size // 2
+
+    # Dark outline for definition at small sizes, then dark fill
+    outline_color = (120, 60, 0)
+    text_color = (40, 20, 0)
+    for dx, dy in [(-3, 0), (3, 0), (0, -3), (0, 3)]:
+        draw.text((x_start + dx, y + dy), "K", fill=outline_color, font=font, anchor="lm")
+        draw.text((x_start + k_w + gap + dx, y + dy), "2", fill=outline_color, font=font, anchor="lm")
+    draw.text((x_start, y), "K", fill=text_color, font=font, anchor="lm")
+    draw.text((x_start + k_w + gap, y), "2", fill=text_color, font=font, anchor="lm")
 
     return image
 
