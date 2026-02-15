@@ -78,7 +78,7 @@ class SpotifyClient:
         Args:
             client_id: Spotify app client ID (or set SPOTIPY_CLIENT_ID env var)
             client_secret: Spotify app client secret (or set SPOTIPY_CLIENT_SECRET env var)
-            redirect_uri: OAuth redirect URI (default: http://localhost:8888/callback)
+            redirect_uri: OAuth redirect URI (default: http://127.0.0.1:8080/api/auth/spotify/callback)
 
         Returns:
             True if initialization successful.

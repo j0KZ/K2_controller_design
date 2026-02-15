@@ -35,14 +35,14 @@ All items delivered across v0.2.0-v0.3.0:
 - Software layers (3x controls)
 - SendInput migration (pynput replaced for keyboard)
 
-### Phase 3: Polish — ~50%
+### Phase 3: Polish — COMPLETE
 
 | Item | Status | Notes |
 |------|--------|-------|
 | Web UI for visual mapping editor | Built | 28 REST endpoints, WebSocket, Vue 3 SPA |
 | Context-aware mode | Built | Conditional actions + profile auto-switch |
-| Windows auto-start installer | Not started | Needs Windows service or startup shortcut |
-| README with setup guide | Partial | README exists but missing end-user setup guide |
+| Windows auto-start installer | Built | VBScript in Startup folder, tray toggle |
+| README with setup guide | Built | Web UI, Spotify, OBS, troubleshooting sections |
 
 ### Unplanned Features Delivered
 

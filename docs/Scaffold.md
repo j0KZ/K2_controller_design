@@ -11,7 +11,7 @@ k2deck/
 │   ├── default.json           # Default mapping profile (active)
 │   └── dual_k2_example.json   # Template for dual-controller setup
 │
-├── core/                      # Core infrastructure (19 modules)
+├── core/                      # Core infrastructure (20 modules)
 │   ├── __init__.py
 │   ├── midi_listener.py       # MIDI input + auto-reconnect (daemon thread)
 │   ├── midi_output.py         # MIDI output to K2 (LED commands)
@@ -31,7 +31,8 @@ k2deck/
 │   ├── secure_storage.py      # Windows keyring for OAuth tokens
 │   ├── spotify_client.py      # Spotify API wrapper (spotipy OAuth)
 │   ├── twitch_client.py       # Twitch API client (twitchAPI OAuth)
-│   └── obs_client.py          # OBS WebSocket client (obsws-python, auto-reconnect)
+│   ├── obs_client.py          # OBS WebSocket client (obsws-python, auto-reconnect)
+│   └── autostart.py           # Windows auto-start (VBScript in Startup folder)
 │
 ├── actions/                   # Action types (18 modules, 48 registered types)
 │   ├── __init__.py
@@ -158,6 +159,7 @@ Frontend tests (30 files) are co-located as `*.test.js` next to their source fil
 | `spotify_client.py` | Spotipy wrapper: OAuth flow, token persistence, API calls |
 | `twitch_client.py` | Twitch API: channel info, markers, clips, chat, moderation |
 | `obs_client.py` | OBS WebSocket v5 client: singleton, lazy connect, auto-reconnect |
+| `autostart.py` | Windows auto-start: create/remove VBScript in Startup folder |
 
 ### actions/ — 48 Registered Action Types
 

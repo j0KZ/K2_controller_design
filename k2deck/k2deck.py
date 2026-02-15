@@ -278,6 +278,8 @@ class K2DeckApp:
 
     def _create_tray_menu(self) -> "pystray.Menu":
         """Create system tray menu."""
+        from k2deck.core.autostart import is_autostart_enabled
+
         return pystray.Menu(
             pystray.MenuItem(
                 lambda text: f"Status: {self._status}",
@@ -290,6 +292,11 @@ class K2DeckApp:
                 "Debug Mode",
                 self._on_toggle_debug,
                 checked=lambda item: self._debug,
+            ),
+            pystray.MenuItem(
+                "Launch at Startup",
+                self._on_toggle_autostart,
+                checked=lambda item: is_autostart_enabled(),
             ),
             pystray.Menu.SEPARATOR,
             pystray.MenuItem("Quit", self._on_quit),
@@ -318,6 +325,29 @@ class K2DeckApp:
         level = logging.DEBUG if self._debug else logging.INFO
         logging.getLogger("k2deck").setLevel(level)
         logger.info("Debug mode: %s", "ON" if self._debug else "OFF")
+
+    def _on_toggle_autostart(self) -> None:
+        """Toggle Windows auto-start."""
+        from k2deck.core.autostart import (
+            disable_autostart,
+            enable_autostart,
+            is_autostart_enabled,
+        )
+
+        if is_autostart_enabled():
+            disable_autostart()
+        else:
+            config_arg = (
+                self._config_path if self._config_path != DEFAULT_CONFIG else None
+            )
+            device_arg = (
+                self._device_name if self._device_name != "XONE:K2" else None
+            )
+            enable_autostart(
+                config_path=config_arg,
+                device_name=device_arg,
+                debug=self._debug,
+            )
 
     def _on_quit(self) -> None:
         """Handle quit request."""

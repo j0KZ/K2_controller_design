@@ -16,6 +16,7 @@ Turn your Allen & Heath Xone:K2 into a system-wide macro controller for Spotify,
 - **Claude Desktop integration** via MCP (10 tools for full K2 control)
 - **Auto-reconnect** when K2 is disconnected/reconnected
 - **System tray** for background operation
+- **Launch at Startup** toggle in system tray menu
 
 ## Requirements
 
@@ -59,6 +60,23 @@ python -m k2deck
 ```
 
 The app runs in the system tray. Right-click the tray icon for options.
+
+## Web UI
+
+K2 Deck includes a visual configuration interface. When the app is running, open:
+
+```
+http://localhost:8420
+```
+
+The Web UI provides:
+- **K2 Grid view** — visual representation of your controller layout with real-time LED states
+- **Action editor** — click any control to assign actions, configure parameters, and set LED behavior
+- **Profile management** — create, switch, and edit mapping profiles
+- **MIDI monitor** — live stream of incoming MIDI events for debugging
+- **Integration status** — connection state for Spotify, OBS, and Twitch
+
+The Web UI runs on localhost only (not accessible from other machines).
 
 ## Usage
 
@@ -176,6 +194,59 @@ Discord global hotkeys must be configured manually:
    - Toggle Mute: `Ctrl+Shift+M`
    - Toggle Deafen: `Ctrl+Shift+D`
 
+## Spotify Setup
+
+K2 Deck uses the Spotify Web API for playback control (play/pause, next, previous, like, shuffle, seek, volume).
+
+### 1. Create a Spotify App
+
+1. Go to [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
+2. Click "Create App"
+3. Set the **Redirect URI** to `http://127.0.0.1:8080/api/auth/spotify/callback`
+4. Note your **Client ID** and **Client Secret**
+
+### 2. Configure Credentials
+
+Set environment variables before running K2 Deck:
+
+```bash
+set SPOTIPY_CLIENT_ID=your_client_id_here
+set SPOTIPY_CLIENT_SECRET=your_client_secret_here
+```
+
+Alternatively, credentials can be stored in the OS keyring via `k2deck/core/secure_storage.py`.
+
+### 3. Authorize
+
+On first run, a browser window opens for Spotify authorization. Grant access, and the token is cached at `~/.k2deck/spotify_token.json`.
+
+**Without Spotify configured**, media key actions (play/pause, next, previous) still work via system media keys — they just won't have API features like "like current track" or "toggle shuffle".
+
+## OBS Setup
+
+K2 Deck connects to OBS Studio via the OBS WebSocket protocol (v5).
+
+### 1. Enable OBS WebSocket Server
+
+1. Open OBS Studio
+2. Go to **Tools > WebSocket Server Settings**
+3. Enable the WebSocket server (default port: **4455**)
+4. Set a password if desired (or leave blank for local-only)
+
+### 2. Configure in K2 Deck
+
+OBS connection is automatic — K2 Deck connects to `localhost:4455` by default with no password. If you changed the port or set a password, configure via the Web UI (Integrations panel) or the REST API:
+
+```bash
+curl -X POST http://localhost:8420/api/integrations/obs/connect \
+  -H "Content-Type: application/json" \
+  -d '{"host": "localhost", "port": 4455, "password": "your_password"}'
+```
+
+Available OBS actions: `obs_scene`, `obs_source_toggle`, `obs_stream`, `obs_record`, `obs_mute`.
+
+**Requires OBS 28+** (WebSocket v5). Older versions use v4 which is incompatible.
+
 ## Hardware Notes
 
 - K2 default MIDI channel is 15 (user's K2 may be on channel 16)
@@ -205,6 +276,24 @@ Discord global hotkeys must be configured manually:
 ### Hotkeys not working in Discord
 - Discord global hotkeys must be configured in Discord Settings
 - Verify the key combinations match your config
+
+### Web UI not loading (localhost:8420)
+- The Web UI starts automatically with the main app
+- Check console/log for port conflict errors (another app using port 8420)
+- Ensure `fastapi` and `uvicorn` are installed: `pip install fastapi uvicorn`
+- Try `http://127.0.0.1:8420` instead of `localhost`
+
+### Spotify authorization fails
+- Verify `SPOTIPY_CLIENT_ID` and `SPOTIPY_CLIENT_SECRET` are set correctly
+- Ensure the Redirect URI in your Spotify app matches exactly: `http://127.0.0.1:8080/api/auth/spotify/callback`
+- Delete the cached token to re-authorize: remove `~/.k2deck/spotify_token.json`
+- Check that no firewall is blocking localhost port 8080
+
+### OBS not connecting
+- Verify OBS is running and WebSocket server is enabled (Tools > WebSocket Server Settings)
+- Default port is 4455 — check it matches your OBS settings
+- If you set a password in OBS, configure it via the Web UI or REST API
+- OBS WebSocket v5 is required (OBS 28+). Older versions use v4 which is incompatible
 
 ## Project Structure
 
