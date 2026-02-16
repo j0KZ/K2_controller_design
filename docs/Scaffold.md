@@ -32,7 +32,8 @@ k2deck/
 │   ├── spotify_client.py      # Spotify API wrapper (spotipy OAuth)
 │   ├── twitch_client.py       # Twitch API client (twitchAPI OAuth)
 │   ├── obs_client.py          # OBS WebSocket client (obsws-python, auto-reconnect)
-│   └── autostart.py           # Windows auto-start (VBScript in Startup folder)
+│   ├── autostart.py           # Windows auto-start (VBScript in Startup folder)
+│   └── instance_lock.py       # Single-instance guard (Windows named mutex)
 │
 ├── actions/                   # Action types (18 modules, 48 registered types)
 │   ├── __init__.py
@@ -160,6 +161,7 @@ Frontend tests (30 files) are co-located as `*.test.js` next to their source fil
 | `twitch_client.py` | Twitch API: channel info, markers, clips, chat, moderation |
 | `obs_client.py` | OBS WebSocket v5 client: singleton, lazy connect, auto-reconnect |
 | `autostart.py` | Windows auto-start: create/remove VBScript in Startup folder |
+| `instance_lock.py` | Single-instance guard: Windows named mutex, fail-open |
 
 ### actions/ — 48 Registered Action Types
 

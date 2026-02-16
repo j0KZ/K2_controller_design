@@ -524,13 +524,24 @@ def main() -> None:
         learn_main()
         return
 
+    # Single-instance guard
+    from k2deck.core.instance_lock import acquire_instance_lock, release_instance_lock
+
+    lock = acquire_instance_lock()
+    if lock is None:
+        logger.info("K2 Deck is already running — exiting")
+        return
+
     # Run main app
-    app = K2DeckApp(
-        config_path=args.config,
-        device_name=args.device,
-        debug=args.debug,
-    )
-    sys.exit(app.run())
+    try:
+        app = K2DeckApp(
+            config_path=args.config,
+            device_name=args.device,
+            debug=args.debug,
+        )
+        sys.exit(app.run())
+    finally:
+        release_instance_lock(lock)
 
 
 if __name__ == "__main__":

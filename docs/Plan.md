@@ -130,7 +130,7 @@ These were not in the original 3-phase plan but were added based on real usage:
 | Thread-based timers | Scalability | Fine for <20 timers, but asyncio would be cleaner long-term |
 | No rate limiting on REST API | Security | Localhost-only mitigates risk, but no protection against local abuse |
 | No authentication on Web UI | Security | Localhost-only binding, but any local process can access |
-| No single-instance guard | Duplicate processes | VBS auto-start + manual launch = two instances. Needs mutex or lock file |
+| ~~No single-instance guard~~ | Resolved | Windows named mutex in `core/instance_lock.py` (v0.5.1) |
 
 ### Testing Gaps
 
