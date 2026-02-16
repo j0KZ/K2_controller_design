@@ -60,21 +60,23 @@ These were not in the original 3-phase plan but were added based on real usage:
 | Folder navigation (sub-pages) | v0.3.0 | More actions per button |
 | Twitch API integration | v0.3.0 | Stream markers, clips, chat |
 | Profile auto-switch | v0.3.0 | Auto-switch on focused app change |
+| Profile export/import | v0.5.1 | Backup/share/restore profiles via Web UI |
+| Single-instance guard | v0.5.1 | Windows named mutex prevents duplicate instances |
 
 ## 3. Current Metrics
 
 | Metric | Count |
 |--------|-------|
 | Action types | 48 |
-| REST API endpoints | 28 |
+| REST API endpoints | 30 |
 | WebSocket event types | 11 (9 server-to-client, 2 client-to-server) |
 | MCP tools | 10 |
 | Python source files | ~96 |
 | Frontend source files (Vue + JS) | ~63 |
-| Backend test files | 34 |
+| Backend test files | 35 |
 | Frontend test files | 30 |
-| Backend tests | 636 passing, 7 skipped |
-| Frontend coverage | 91%+ statements, 270+ tests |
+| Backend tests | 671 passing, 7 skipped |
+| Frontend coverage | 91%+ statements, 275 tests |
 
 ## 4. Planned Features
 
@@ -82,11 +84,11 @@ These were not in the original 3-phase plan but were added based on real usage:
 
 | Feature | Description | Complexity |
 |---------|-------------|------------|
-| Windows auto-start | Startup shortcut or Windows service, so K2 Deck launches on login | Low |
+| ~~Windows auto-start~~ | ~~Startup shortcut or Windows service~~ | ~~Low~~ |
 | Drag-and-drop config UI | Stream Deck-style: drag action cards onto K2 grid buttons | High |
 | Encoder acceleration | Fast encoder turn = larger step increment, slow = fine control | Medium |
 | Spotify state sync | Poll Spotify API to reflect current playing state on LEDs | Medium |
-| Profile export/import via UI | Download/upload profile JSON from the Web UI | Low |
+| ~~Profile export/import via UI~~ | ~~Download/upload profile JSON from Web UI~~ | ~~Low~~ |
 
 ### Medium Priority
 

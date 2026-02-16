@@ -3,9 +3,11 @@
 Endpoints:
 - GET    /api/profiles              - List all profiles
 - POST   /api/profiles              - Create new profile
+- POST   /api/profiles/import       - Import profile from JSON file
 - GET    /api/profiles/{name}       - Get specific profile
 - PUT    /api/profiles/{name}       - Update profile
 - DELETE /api/profiles/{name}       - Delete profile
+- GET    /api/profiles/{name}/export - Export profile as JSON file
 - PUT    /api/profiles/{name}/activate - Activate profile
 """
 
@@ -16,7 +18,8 @@ import threading
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, UploadFile
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
@@ -182,6 +185,94 @@ async def create_profile(body: ProfileCreate) -> dict[str, str]:
     return {"message": f"Profile '{body.name}' created"}
 
 
+@router.post("/import")
+async def import_profile(file: UploadFile) -> dict[str, str]:
+    """Import a profile from an uploaded JSON file.
+
+    Creates a new profile from the uploaded config. Profile name is extracted
+    from the JSON content (profile_name or name field), or derived from the
+    filename.
+
+    Args:
+        file: Uploaded JSON file.
+
+    Returns:
+        Success message with created profile name.
+
+    Raises:
+        HTTPException: If file is invalid, profile already exists, or import fails.
+    """
+    # Validate filename extension
+    if not file.filename or not file.filename.endswith(".json"):
+        raise HTTPException(status_code=400, detail="File must be a .json file")
+
+    # Validate content type (if provided by client)
+    if file.content_type and file.content_type not in (
+        "application/json",
+        "text/json",
+        "text/plain",
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid content type: {file.content_type}. Expected application/json",
+        )
+
+    try:
+        content = await file.read()
+
+        if len(content) > 1024 * 1024:
+            raise HTTPException(status_code=400, detail="File too large (max 1MB)")
+
+        config = json.loads(content.decode("utf-8"))
+    except json.JSONDecodeError as e:
+        raise HTTPException(status_code=400, detail=f"Invalid JSON: {e}")
+    except UnicodeDecodeError:
+        raise HTTPException(status_code=400, detail="File must be UTF-8 encoded")
+
+    if not isinstance(config, dict):
+        raise HTTPException(status_code=400, detail="Config must be a JSON object")
+
+    # Validate config structure
+    from k2deck.web.routes.config import _validate_config
+
+    result = _validate_config(config)
+    if not result.valid:
+        raise HTTPException(
+            status_code=400,
+            detail={"message": "Config validation failed", "errors": result.errors},
+        )
+
+    # Extract profile name: try config fields, then filename
+    name = config.get("profile_name") or config.get("name")
+    if not name and file.filename:
+        stem = Path(file.filename).stem
+        name = stem.removeprefix("k2deck-") if stem.startswith("k2deck-") else stem
+    if not name:
+        raise HTTPException(
+            status_code=400, detail="Cannot determine profile name from file"
+        )
+
+    _validate_profile_name(name)
+
+    path = _get_profile_path(name)
+    if path.exists():
+        raise HTTPException(
+            status_code=409, detail=f"Profile '{name}' already exists"
+        )
+
+    # Save
+    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+    try:
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(config, f, indent=2)
+    except OSError as e:
+        raise HTTPException(status_code=500, detail=f"Failed to save profile: {e}")
+
+    logger.info("Imported profile '%s' from file '%s'", name, file.filename)
+
+    return {"message": f"Profile '{name}' imported", "profile": name}
+
+
 @router.get("/{name}")
 async def get_profile(name: str) -> dict[str, Any]:
     """Get a specific profile's configuration.
@@ -315,6 +406,30 @@ async def activate_profile(name: str) -> dict[str, str]:
     logger.info("Activated profile '%s' (was: '%s')", name, previous)
 
     return {"message": f"Profile '{name}' activated", "previous": previous}
+
+
+@router.get("/{name}/export")
+async def export_profile(name: str) -> FileResponse:
+    """Export a profile as a downloadable JSON file.
+
+    Args:
+        name: Profile name to export.
+
+    Returns:
+        JSON file download.
+
+    Raises:
+        HTTPException: If profile not found.
+    """
+    path = _get_profile_path(name)
+    if not path.exists():
+        raise HTTPException(status_code=404, detail=f"Profile '{name}' not found")
+
+    return FileResponse(
+        path=str(path),
+        filename=f"k2deck-{name}.json",
+        media_type="application/json",
+    )
 
 
 def get_active_profile() -> str:

@@ -157,4 +157,68 @@ describe('ProfileDropdown', () => {
 
     expect(wrapper.text()).toContain('▼')
   })
+
+  it('should show export button for each profile', async () => {
+    const profiles = useProfiles()
+    profiles.profiles = [
+      { name: 'default', active: true },
+      { name: 'gaming', active: false },
+    ]
+
+    const wrapper = mount(ProfileDropdown)
+    await wrapper.find('button').trigger('click')
+
+    const exportBtns = wrapper.findAll('button[title="Export profile"]')
+    expect(exportBtns).toHaveLength(2)
+  })
+
+  it('should call exportProfile on export button click', async () => {
+    const profiles = useProfiles()
+    profiles.profiles = [{ name: 'gaming', active: false }]
+
+    const wrapper = mount(ProfileDropdown)
+    await wrapper.find('button').trigger('click')
+
+    // Mock window.location.href assignment
+    const originalLocation = window.location
+    delete window.location
+    window.location = { href: '' }
+
+    const exportBtn = wrapper.find('button[title="Export profile"]')
+    await exportBtn.trigger('click')
+
+    expect(window.location.href).toBe('/api/profiles/gaming/export')
+
+    window.location = originalLocation
+  })
+
+  it('should show Import Profile button', async () => {
+    const wrapper = mount(ProfileDropdown)
+    await wrapper.find('button').trigger('click')
+
+    expect(wrapper.text()).toContain('Import Profile')
+  })
+
+  it('should have hidden file input for import', async () => {
+    const wrapper = mount(ProfileDropdown)
+    await wrapper.find('button').trigger('click')
+
+    const fileInput = wrapper.find('input[type="file"]')
+    expect(fileInput.exists()).toBe(true)
+    expect(fileInput.attributes('accept')).toBe('.json')
+    expect(fileInput.classes()).toContain('hidden')
+  })
+
+  it('should trigger file input on Import click', async () => {
+    const wrapper = mount(ProfileDropdown)
+    await wrapper.find('button').trigger('click')
+
+    const fileInput = wrapper.find('input[type="file"]')
+    const clickSpy = vi.spyOn(fileInput.element, 'click')
+
+    const importBtn = wrapper.findAll('button').find(b => b.text().includes('Import Profile'))
+    await importBtn.trigger('click')
+
+    expect(clickSpy).toHaveBeenCalled()
+  })
 })

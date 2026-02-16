@@ -81,6 +81,34 @@ export const useProfiles = defineStore('profiles', {
       }
     },
 
+    exportProfile(name) {
+      window.location.href = `/api/profiles/${name}/export`
+    },
+
+    async importProfile(file) {
+      this.loading = true
+      try {
+        const form = new FormData()
+        form.append('file', file)
+        const resp = await fetch('/api/profiles/import', { method: 'POST', body: form })
+        if (!resp.ok) {
+          const err = await resp.json().catch(() => null)
+          const detail = err?.detail
+          const msg = typeof detail === 'string' ? detail : detail?.message || 'Import failed'
+          throw new Error(msg)
+        }
+        const data = await resp.json()
+        await this.fetchProfiles()
+        this.error = null
+        return data
+      } catch (e) {
+        this.error = e.message
+        throw e
+      } finally {
+        this.loading = false
+      }
+    },
+
     handleChange(profile) {
       this.activeProfile = profile
     },

@@ -13,15 +13,26 @@
       class="absolute right-0 top-full mt-1 w-56 bg-k2-surface border border-k2-border rounded shadow-lg z-50"
     >
       <!-- Profile list -->
-      <button
+      <div
         v-for="profile in profiles.profiles"
         :key="profile.name"
-        class="w-full px-3 py-2 text-left hover:bg-k2-surface-hover flex justify-between items-center"
-        @click="selectProfile(profile.name)"
+        class="flex items-center hover:bg-k2-surface-hover"
       >
-        <span>{{ profile.name }}</span>
-        <span v-if="profiles.isActive(profile.name)" class="text-k2-success text-xs">●</span>
-      </button>
+        <button
+          class="flex-1 px-3 py-2 text-left flex justify-between items-center"
+          @click="selectProfile(profile.name)"
+        >
+          <span>{{ profile.name }}</span>
+          <span v-if="profiles.isActive(profile.name)" class="text-k2-success text-xs">●</span>
+        </button>
+        <button
+          class="px-2 py-2 text-k2-text-secondary hover:text-k2-text text-xs"
+          title="Export profile"
+          @click.stop="exportProfile(profile.name)"
+        >
+          ↓
+        </button>
+      </div>
 
       <hr class="border-k2-border" />
 
@@ -61,13 +72,29 @@
         </label>
       </div>
 
-      <button
-        v-else
-        class="w-full px-3 py-2 text-left hover:bg-k2-surface-hover text-k2-accent"
-        @click="showCreate"
-      >
-        + New Profile
-      </button>
+      <div v-else>
+        <button
+          class="w-full px-3 py-2 text-left hover:bg-k2-surface-hover text-k2-accent"
+          @click="showCreate"
+        >
+          + New Profile
+        </button>
+
+        <!-- Import profile -->
+        <button
+          class="w-full px-3 py-2 text-left hover:bg-k2-surface-hover text-k2-text-secondary"
+          @click="triggerImport"
+        >
+          ↑ Import Profile
+        </button>
+        <input
+          ref="fileInput"
+          type="file"
+          accept=".json"
+          class="hidden"
+          @change="handleImport"
+        />
+      </div>
     </div>
 
     <!-- Click outside to close -->
@@ -94,6 +121,7 @@ const showCreateForm = ref(false)
 const newProfileName = ref('')
 const copyFromCurrent = ref(true)
 const createInput = ref(null)
+const fileInput = ref(null)
 
 onMounted(() => profiles.fetchProfiles())
 
@@ -106,6 +134,31 @@ async function selectProfile(name) {
     ui.addToast(`Failed to switch profile: ${e.message}`, 'error')
   }
   open.value = false
+}
+
+function exportProfile(name) {
+  profiles.exportProfile(name)
+  ui.addToast(`Exporting ${name}...`, 'info')
+}
+
+function triggerImport() {
+  fileInput.value?.click()
+}
+
+async function handleImport(event) {
+  const file = event.target.files?.[0]
+  if (!file) return
+
+  try {
+    const data = await profiles.importProfile(file)
+    ui.addToast(`Imported profile: ${data.profile}`, 'success')
+    open.value = false
+  } catch (e) {
+    ui.addToast(`Import failed: ${e.message}`, 'error')
+  }
+
+  // Reset file input so the same file can be re-selected
+  event.target.value = ''
 }
 
 function showCreate() {

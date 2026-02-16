@@ -168,12 +168,12 @@ New color overwrites active — no need to send Note Off first.
 
 ### 7.1 Backend (FastAPI)
 
-28 REST endpoints across 4 routers, all prefixed with `/api`:
+30 REST endpoints across 4 routers, all prefixed with `/api`:
 
 | Router | Prefix | Endpoints | Key operations |
 |--------|--------|-----------|----------------|
 | config | `/api/config` | 5 | GET/PUT config, validate, export/import |
-| profiles | `/api/profiles` | 6 | CRUD + activate profile |
+| profiles | `/api/profiles` | 8 | CRUD + activate + export/import profile |
 | k2 | `/api/k2` | 13 | State, LEDs, layer, folder, analog, MIDI, trigger, timers |
 | integrations | `/api/integrations` | 4 | Status, connect/disconnect per integration |
 

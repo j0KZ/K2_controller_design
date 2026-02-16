@@ -159,4 +159,68 @@ describe('useProfiles store', () => {
     await expect(profiles.activateProfile('missing')).rejects.toThrow('Profile not found')
     expect(profiles.error).toBe('Profile not found')
   })
+
+  it('should export profile via window.location.href', () => {
+    const profiles = useProfiles()
+    const originalLocation = window.location
+    delete window.location
+    window.location = { href: '' }
+
+    profiles.exportProfile('gaming')
+
+    expect(window.location.href).toBe('/api/profiles/gaming/export')
+    window.location = originalLocation
+  })
+
+  it('should import profile and refresh list', async () => {
+    const mockFile = new File(['{}'], 'test.json', { type: 'application/json' })
+    const mockResponse = { message: "Profile 'test' imported", profile: 'test' }
+
+    global.fetch = vi.fn().mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve(mockResponse),
+    })
+    mockApi.get.mockResolvedValueOnce({
+      profiles: [{ name: 'default' }, { name: 'test' }],
+      active: 'default',
+    })
+
+    const profiles = useProfiles()
+    const result = await profiles.importProfile(mockFile)
+
+    expect(global.fetch).toHaveBeenCalledWith('/api/profiles/import', {
+      method: 'POST',
+      body: expect.any(FormData),
+    })
+    expect(result.profile).toBe('test')
+    expect(profiles.loading).toBe(false)
+    expect(profiles.error).toBeNull()
+  })
+
+  it('should handle import error with string detail', async () => {
+    global.fetch = vi.fn().mockResolvedValueOnce({
+      ok: false,
+      json: () => Promise.resolve({ detail: 'Profile already exists' }),
+    })
+
+    const profiles = useProfiles()
+    const mockFile = new File(['{}'], 'test.json', { type: 'application/json' })
+
+    await expect(profiles.importProfile(mockFile)).rejects.toThrow('Profile already exists')
+    expect(profiles.error).toBe('Profile already exists')
+    expect(profiles.loading).toBe(false)
+  })
+
+  it('should handle import error with dict detail', async () => {
+    global.fetch = vi.fn().mockResolvedValueOnce({
+      ok: false,
+      json: () => Promise.resolve({ detail: { message: 'Config validation failed', errors: ['bad'] } }),
+    })
+
+    const profiles = useProfiles()
+    const mockFile = new File(['{}'], 'test.json', { type: 'application/json' })
+
+    await expect(profiles.importProfile(mockFile)).rejects.toThrow('Config validation failed')
+    expect(profiles.error).toBe('Config validation failed')
+  })
 })
