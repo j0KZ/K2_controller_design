@@ -424,6 +424,14 @@ class K2DeckApp:
         # Setup default LED states
         self._setup_defaults()
 
+        # Start web server in background
+        try:
+            from k2deck.web.server import run_server_background
+
+            run_server_background()
+        except Exception as e:
+            logger.warning("Web UI failed to start: %s", e)
+
         # Start connection monitor
         monitor_thread = threading.Thread(
             target=self._connection_monitor,
