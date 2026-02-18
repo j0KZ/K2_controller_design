@@ -214,6 +214,9 @@ class OBSClientManager:
             logger.warning("OBS: Connection error - %s", e)
             self._connected = False
             return False
+        except Exception as e:
+            logger.warning("OBS: Unexpected error switching scene - %s", e)
+            return False
 
     def toggle_source_visibility(
         self, scene_name: str, source_name: str, visible: bool | None = None
@@ -265,6 +268,9 @@ class OBSClientManager:
             logger.warning("OBS: Connection error - %s", e)
             self._connected = False
             return False
+        except Exception as e:
+            logger.warning("OBS: Unexpected error toggling source - %s", e)
+            return False
 
     def toggle_stream(self, action: str = "toggle") -> bool:
         """Control streaming.
@@ -302,6 +308,9 @@ class OBSClientManager:
         except (OBSSDKTimeoutError, OBSSDKError) as e:
             logger.warning("OBS: Connection error - %s", e)
             self._connected = False
+            return False
+        except Exception as e:
+            logger.warning("OBS: Unexpected error controlling stream - %s", e)
             return False
 
     def toggle_record(self, action: str = "toggle") -> bool:
@@ -344,6 +353,9 @@ class OBSClientManager:
             logger.warning("OBS: Connection error - %s", e)
             self._connected = False
             return False
+        except Exception as e:
+            logger.warning("OBS: Unexpected error controlling recording - %s", e)
+            return False
 
     def toggle_mute(self, input_name: str, muted: bool | None = None) -> bool:
         """Toggle or set input mute state.
@@ -376,6 +388,9 @@ class OBSClientManager:
         except (OBSSDKTimeoutError, OBSSDKError) as e:
             logger.warning("OBS: Connection error - %s", e)
             self._connected = False
+            return False
+        except Exception as e:
+            logger.warning("OBS: Unexpected error toggling mute - %s", e)
             return False
 
     def get_scenes(self) -> list[str]:

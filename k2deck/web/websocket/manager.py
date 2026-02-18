@@ -8,7 +8,7 @@ import asyncio
 import json
 import logging
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 from fastapi import WebSocket
@@ -16,7 +16,7 @@ from fastapi import WebSocket
 logger = logging.getLogger(__name__)
 
 
-class EventType(str, Enum):
+class EventType(StrEnum):
     """WebSocket event types."""
 
     # Server -> Client events

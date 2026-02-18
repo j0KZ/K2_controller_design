@@ -8,7 +8,7 @@ Endpoints:
 """
 
 import logging
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-class IntegrationName(str, Enum):
+class IntegrationName(StrEnum):
     """Available integrations."""
 
     OBS = "obs"
