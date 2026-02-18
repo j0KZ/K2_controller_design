@@ -44,21 +44,10 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useDragDrop, formatName } from '@/composables/useDragDrop'
+import { ACTION_GROUPS } from '@/constants/actions'
 
 const dragDrop = useDragDrop()
 const search = ref('')
-
-const ACTION_GROUPS = {
-  'Media': [
-    'spotify_play_pause', 'spotify_next', 'spotify_previous',
-    'spotify_volume', 'spotify_like', 'spotify_shuffle', 'spotify_seek',
-  ],
-  'System': ['hotkey', 'volume', 'mouse_scroll', 'hotkey_relative'],
-  'OBS': ['obs_scene', 'obs_source_toggle', 'obs_stream', 'obs_record'],
-  'Twitch': ['twitch_marker', 'twitch_ad', 'twitch_prediction'],
-  'Advanced': ['conditional', 'multi', 'multi_toggle', 'folder', 'counter', 'sound', 'tts'],
-  'Utility': ['noop', 'system'],
-}
 
 const filteredGroups = computed(() => {
   const q = search.value.toLowerCase().trim()

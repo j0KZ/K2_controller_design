@@ -20,7 +20,7 @@
       <div>
         <label class="block text-sm font-medium mb-1">Clockwise Keys</label>
         <input
-          :value="modelValue.cw_keys?.join(' + ')"
+          :value="modelValue.cw?.join(' + ')"
           @input="updateCwKeys($event.target.value)"
           type="text"
           class="form-input w-full"
@@ -30,7 +30,7 @@
       <div>
         <label class="block text-sm font-medium mb-1">Counter-clockwise Keys</label>
         <input
-          :value="modelValue.ccw_keys?.join(' + ')"
+          :value="modelValue.ccw?.join(' + ')"
           @input="updateCcwKeys($event.target.value)"
           type="text"
           class="form-input w-full"
@@ -236,52 +236,6 @@
       </div>
     </template>
 
-    <!-- Twitch Ad action -->
-    <template v-else-if="actionType === 'twitch_ad'">
-      <div>
-        <label class="block text-sm font-medium mb-1">Duration (seconds)</label>
-        <select
-          :value="modelValue.duration || 30"
-          @change="update('duration', parseInt($event.target.value))"
-          class="form-select w-full"
-        >
-          <option value="30">30 seconds</option>
-          <option value="60">60 seconds</option>
-          <option value="90">90 seconds</option>
-          <option value="120">120 seconds</option>
-          <option value="150">150 seconds</option>
-          <option value="180">180 seconds</option>
-        </select>
-      </div>
-    </template>
-
-    <!-- Twitch Prediction action -->
-    <template v-else-if="actionType === 'twitch_prediction'">
-      <div>
-        <label class="block text-sm font-medium mb-1">Action</label>
-        <select
-          :value="modelValue.action || 'create'"
-          @change="update('action', $event.target.value)"
-          class="form-select w-full"
-        >
-          <option value="create">Create Prediction</option>
-          <option value="lock">Lock Prediction</option>
-          <option value="resolve">Resolve Prediction</option>
-          <option value="cancel">Cancel Prediction</option>
-        </select>
-      </div>
-      <div v-if="modelValue.action === 'create'">
-        <label class="block text-sm font-medium mb-1">Title</label>
-        <input
-          :value="modelValue.title"
-          @input="update('title', $event.target.value)"
-          type="text"
-          class="form-input w-full"
-          placeholder="Will I win this game?"
-        />
-      </div>
-    </template>
-
     <!-- Folder action -->
     <template v-else-if="actionType === 'folder'">
       <div>
@@ -339,8 +293,8 @@
       </div>
     </template>
 
-    <!-- Sound action -->
-    <template v-else-if="actionType === 'sound'">
+    <!-- Sound Play action -->
+    <template v-else-if="actionType === 'sound_play'">
       <div>
         <label class="block text-sm font-medium mb-1">Sound File</label>
         <input
@@ -457,13 +411,13 @@ function updateKeys(value) {
 }
 
 function updateCwKeys(value) {
-  const cw_keys = value.split('+').map(k => k.trim().toLowerCase()).filter(Boolean)
-  emit('update:modelValue', { ...props.modelValue, cw_keys })
+  const cw = value.split('+').map(k => k.trim().toLowerCase()).filter(Boolean)
+  emit('update:modelValue', { ...props.modelValue, cw })
 }
 
 function updateCcwKeys(value) {
-  const ccw_keys = value.split('+').map(k => k.trim().toLowerCase()).filter(Boolean)
-  emit('update:modelValue', { ...props.modelValue, ccw_keys })
+  const ccw = value.split('+').map(k => k.trim().toLowerCase()).filter(Boolean)
+  emit('update:modelValue', { ...props.modelValue, ccw })
 }
 
 function updateActions(value) {

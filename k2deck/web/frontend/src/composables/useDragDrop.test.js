@@ -12,7 +12,8 @@ vi.mock('@/composables/useApi', () => ({
 
 import {
   useDragDrop,
-  CC_ONLY_ACTIONS,
+  CC_ABSOLUTE_ACTIONS,
+  CC_RELATIVE_ACTIONS,
   NOTE_ONLY_ACTIONS,
   isDropCompatible,
   formatName,
@@ -114,6 +115,30 @@ describe('useDragDrop', () => {
       expect(isDropCompatible('multi', button)).toBe(true)
     })
 
+    it('blocks absolute action on encoder (two\'s complement mismatch)', () => {
+      expect(isDropCompatible('volume', encoder)).toBe(false)
+      expect(isDropCompatible('spotify_volume', encoder)).toBe(false)
+      expect(isDropCompatible('osc_send', encoder)).toBe(false)
+    })
+
+    it('blocks relative action on fader (absolute mismatch)', () => {
+      expect(isDropCompatible('hotkey_relative', fader)).toBe(false)
+      expect(isDropCompatible('mouse_scroll', fader)).toBe(false)
+      expect(isDropCompatible('spotify_seek', fader)).toBe(false)
+    })
+
+    it('allows absolute action on fader', () => {
+      expect(isDropCompatible('volume', fader)).toBe(true)
+      expect(isDropCompatible('spotify_volume', fader)).toBe(true)
+      expect(isDropCompatible('osc_send', fader)).toBe(true)
+    })
+
+    it('allows relative action on encoder', () => {
+      expect(isDropCompatible('hotkey_relative', encoder)).toBe(true)
+      expect(isDropCompatible('mouse_scroll', encoder)).toBe(true)
+      expect(isDropCompatible('spotify_seek', encoder)).toBe(true)
+    })
+
     it('allows unknown action type on any control', () => {
       expect(isDropCompatible('unknown_future', button)).toBe(true)
       expect(isDropCompatible('unknown_future', fader)).toBe(true)
@@ -121,12 +146,22 @@ describe('useDragDrop', () => {
   })
 
   describe('compatibility sets', () => {
-    it('CC_ONLY has 8 actions', () => {
-      expect(CC_ONLY_ACTIONS.size).toBe(8)
+    it('CC_ABSOLUTE has 3 actions', () => {
+      expect(CC_ABSOLUTE_ACTIONS.size).toBe(3)
+    })
+
+    it('CC_RELATIVE has 5 actions', () => {
+      expect(CC_RELATIVE_ACTIONS.size).toBe(5)
     })
 
     it('NOTE_ONLY has 36 actions', () => {
       expect(NOTE_ONLY_ACTIONS.size).toBe(36)
+    })
+
+    it('osc_send_trigger is in NOTE_ONLY (requires note_on)', () => {
+      expect(NOTE_ONLY_ACTIONS.has('osc_send_trigger')).toBe(true)
+      expect(CC_ABSOLUTE_ACTIONS.has('osc_send_trigger')).toBe(false)
+      expect(CC_RELATIVE_ACTIONS.has('osc_send_trigger')).toBe(false)
     })
   })
 

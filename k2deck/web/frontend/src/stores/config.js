@@ -47,6 +47,10 @@ export const useConfig = defineStore('config', {
     },
 
     updateMapping(type, key, mapping) {
+      if (!this.config) return
+      if (!this.config.mappings) {
+        this.config.mappings = {}
+      }
       if (!this.config.mappings[type]) {
         this.config.mappings[type] = {}
       }

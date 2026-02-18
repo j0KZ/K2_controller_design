@@ -171,4 +171,24 @@ describe('useConfig store', () => {
     expect(() => config.deleteMapping('note_on', 999)).not.toThrow()
     expect(() => config.deleteMapping('nonexistent', 1)).not.toThrow()
   })
+
+  it('should not crash updateMapping when config is null', () => {
+    const config = useConfig()
+    // config.config is null by default
+
+    expect(() => config.updateMapping('note_on', 36, { name: 'X', action: 'hotkey' })).not.toThrow()
+    expect(config.config).toBeNull()
+    expect(config.dirty).toBe(false)
+  })
+
+  it('should initialize mappings object if missing', () => {
+    const config = useConfig()
+    config.config = {} // config exists but no mappings key
+
+    config.updateMapping('note_on', 36, { name: 'New', action: 'hotkey' })
+
+    expect(config.config.mappings).toBeDefined()
+    expect(config.config.mappings.note_on[36].name).toBe('New')
+    expect(config.dirty).toBe(true)
+  })
 })

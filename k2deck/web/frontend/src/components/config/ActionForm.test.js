@@ -101,17 +101,18 @@ describe('ActionForm', () => {
     expect(wrapper.text()).toContain('No configuration needed')
   })
 
-  it('should render twitch_ad duration select', () => {
+  it('should render sound_play form with file and volume', () => {
     const wrapper = mount(ActionForm, {
       props: {
-        actionType: 'twitch_ad',
-        modelValue: { duration: 60 },
+        actionType: 'sound_play',
+        modelValue: { file: 'click.wav', volume: 80 },
       },
     })
 
-    expect(wrapper.find('select').exists()).toBe(true)
-    expect(wrapper.find('option[value="30"]').exists()).toBe(true)
-    expect(wrapper.find('option[value="180"]').exists()).toBe(true)
+    const inputs = wrapper.findAll('input')
+    expect(inputs).toHaveLength(2)
+    expect(inputs[0].element.value).toBe('click.wav')
+    expect(Number(inputs[1].element.value)).toBe(80)
   })
 
   it('should render tts form fields', () => {

@@ -17,7 +17,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { ACTION_GROUPS, formatActionName } from '@/constants/actions'
 
 defineProps({
   modelValue: { type: String, default: '' },
@@ -25,50 +25,5 @@ defineProps({
 
 defineEmits(['update:modelValue'])
 
-// Action types grouped by category
-const groupedActions = computed(() => ({
-  'Media': [
-    'spotify_play_pause',
-    'spotify_next',
-    'spotify_previous',
-    'spotify_volume',
-    'spotify_like',
-    'spotify_shuffle',
-    'spotify_seek',
-  ],
-  'System': [
-    'hotkey',
-    'volume',
-    'mouse_scroll',
-    'hotkey_relative',
-  ],
-  'OBS': [
-    'obs_scene',
-    'obs_source_toggle',
-    'obs_stream',
-    'obs_record',
-  ],
-  'Twitch': [
-    'twitch_marker',
-    'twitch_ad',
-    'twitch_prediction',
-  ],
-  'Advanced': [
-    'conditional',
-    'multi',
-    'multi_toggle',
-    'folder',
-    'counter',
-    'sound',
-    'tts',
-  ],
-  'Utility': [
-    'noop',
-    'system',
-  ],
-}))
-
-function formatActionName(action) {
-  return action.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
-}
+const groupedActions = ACTION_GROUPS
 </script>

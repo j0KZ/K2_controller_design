@@ -11,16 +11,20 @@ const state = reactive({
   dragOverControlId: null,
 })
 
-// Actions that REQUIRE CC events — cannot go on buttons
-const CC_ONLY_ACTIONS = new Set([
-  'hotkey_relative',
-  'volume',
-  'mouse_scroll',
-  'spotify_volume',
-  'spotify_seek',
-  'spotify_prev_next',
-  'osc_send_relative',
-  'osc_send_trigger',
+// CC actions that need ABSOLUTE values (faders/pots: 0-127 direct mapping)
+const CC_ABSOLUTE_ACTIONS = new Set([
+  'volume',           // volume.py:183 — event.value / 127.0
+  'spotify_volume',   // spotify.py:140 — linear 0-127 scaling
+  'osc_send',         // osc_send.py:78 — normalized = event.value / 127.0
+])
+
+// CC actions that need RELATIVE values (encoders: two's complement 1/127)
+const CC_RELATIVE_ACTIONS = new Set([
+  'hotkey_relative',    // hotkey.py:185 — two's complement decode
+  'mouse_scroll',       // mouse_scroll.py:65 — two's complement decode
+  'spotify_seek',       // spotify.py:170 — two's complement with delta
+  'spotify_prev_next',  // spotify.py:207 — two's complement for media keys
+  'osc_send_relative',  // osc_send.py:142 — accumulator with two's complement
 ])
 
 // Actions that REQUIRE note_on events — cannot go on encoders/faders/pots
@@ -28,7 +32,7 @@ const NOTE_ONLY_ACTIONS = new Set([
   'spotify_play_pause', 'spotify_next', 'spotify_previous',
   'spotify_like', 'spotify_shuffle', 'spotify_repeat',
   'obs_scene', 'obs_source_toggle', 'obs_stream', 'obs_record', 'obs_mute',
-  'osc_send',
+  'osc_send_trigger',
   'system',
   'open_url', 'clipboard_paste', 'launch', 'focus',
   'sound_play', 'sound_stop', 'audio_switch', 'audio_list',
@@ -49,8 +53,18 @@ function defaultMapping(actionType) {
 
 function isDropCompatible(actionType, targetControl) {
   const targetIsCC = targetControl.cc !== undefined
-  if (!targetIsCC && CC_ONLY_ACTIONS.has(actionType)) return false
+  const isAbsolute = CC_ABSOLUTE_ACTIONS.has(actionType)
+  const isRelative = CC_RELATIVE_ACTIONS.has(actionType)
+
+  // CC actions can't go on buttons (no CC)
+  if (!targetIsCC && (isAbsolute || isRelative)) return false
+  // Note-only actions can't go on CC controls
   if (targetIsCC && NOTE_ONLY_ACTIONS.has(actionType)) return false
+  // Absolute actions shouldn't go on encoders (two's complement mismatch)
+  if (isAbsolute && targetControl.type === 'encoder') return false
+  // Relative actions shouldn't go on faders/pots (absolute mismatch)
+  if (isRelative && targetIsCC && targetControl.type !== 'encoder') return false
+
   return true
 }
 
@@ -299,4 +313,4 @@ export function useDragDrop() {
 }
 
 // Exported for testing
-export { CC_ONLY_ACTIONS, NOTE_ONLY_ACTIONS, isDropCompatible, formatName, defaultMapping }
+export { CC_ABSOLUTE_ACTIONS, CC_RELATIVE_ACTIONS, NOTE_ONLY_ACTIONS, isDropCompatible, formatName, defaultMapping }

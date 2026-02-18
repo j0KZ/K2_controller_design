@@ -32,8 +32,11 @@ describe('ActionCatalog', () => {
 
     expect(headers).toContain('Media')
     expect(headers).toContain('System')
+    expect(headers).toContain('Audio')
     expect(headers).toContain('OBS')
     expect(headers).toContain('Twitch')
+    expect(headers).toContain('OSC')
+    expect(headers).toContain('Timers')
     expect(headers).toContain('Advanced')
     expect(headers).toContain('Utility')
   })
@@ -69,7 +72,7 @@ describe('ActionCatalog', () => {
     await wrapper.find('input').setValue('obs')
 
     const cards = wrapper.findAll('.action-card')
-    expect(cards.length).toBe(4) // obs_scene, obs_source_toggle, obs_stream, obs_record
+    expect(cards.length).toBe(5) // obs_scene, obs_source_toggle, obs_stream, obs_record, obs_mute
   })
 
   it('shows empty state when no results', async () => {
@@ -92,15 +95,8 @@ describe('ActionCatalog', () => {
   it('shows all actions when search is empty', async () => {
     const wrapper = mount(ActionCatalog)
 
-    // Count total actions across all groups
-    const totalActions =
-      7 + // Media
-      4 + // System
-      4 + // OBS
-      3 + // Twitch
-      7 + // Advanced
-      2   // Utility
+    // 48 actions across 9 groups = all backend ACTION_TYPES
     const cards = wrapper.findAll('.action-card')
-    expect(cards.length).toBe(totalActions)
+    expect(cards.length).toBe(48)
   })
 })
