@@ -1,0 +1,6 @@
+target-version = "py312"
+
+[lint]
+select = ["E", "F", "I", "UP"]
+ignore = ["E501"]  # Line length handled by ruff format
+# E = pycodestyle errors, F = pyflakes, I = isort, UP = pyupgrade

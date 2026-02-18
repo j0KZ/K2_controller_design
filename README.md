@@ -3,6 +3,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue.svg)](https://www.python.org/downloads/)
 [![Platform: Windows](https://img.shields.io/badge/platform-Windows-0078d7.svg)](https://www.microsoft.com/windows)
+[![CI](https://github.com/j0KZ/K2_controller_design/actions/workflows/ci.yml/badge.svg)](https://github.com/j0KZ/K2_controller_design/actions/workflows/ci.yml)
 
 Turn your Allen & Heath Xone:K2 into a system-wide macro controller for Spotify, Discord, VS Code, and Brave.
 

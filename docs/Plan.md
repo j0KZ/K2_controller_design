@@ -147,7 +147,7 @@ These were not in the original 3-phase plan but were added based on real usage:
 
 | Item | Status | Target |
 |------|--------|--------|
-| CI/CD pipeline | Not started | GitHub Actions: lint + test on push |
+| CI/CD pipeline | Done | GitHub Actions: ruff lint + pytest (Windows) + vitest + vite build |
 | PyPI packaging | Not started | `pip install k2deck` |
 | Windows installer (.exe) | Not started | PyInstaller or cx_Freeze |
 | Documentation site | Not started | GitHub Pages from docs/ |
