@@ -1,6 +1,7 @@
 {
   "name": "k2deck-frontend",
   "version": "0.1.0",
+  "homepage": "https://github.com/j0KZ/K2_controller_design",
   "type": "module",
   "scripts": {
     "dev": "vite",
