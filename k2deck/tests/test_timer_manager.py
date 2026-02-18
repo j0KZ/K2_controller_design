@@ -2,7 +2,6 @@
 
 import threading
 import time
-from unittest.mock import MagicMock
 
 from k2deck.core.timer_manager import TimerManager, get_timer_manager
 
@@ -207,7 +206,9 @@ class TestTimerManager:
             except Exception as e:
                 errors.append(e)
 
-        threads = [threading.Thread(target=start_many, args=(f"t{n}",)) for n in range(4)]
+        threads = [
+            threading.Thread(target=start_many, args=(f"t{n}",)) for n in range(4)
+        ]
         for t in threads:
             t.start()
         for t in threads:

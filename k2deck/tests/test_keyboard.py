@@ -1,7 +1,6 @@
 """Tests for keyboard.py - Windows SendInput simulation."""
 
-import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 from k2deck.core import keyboard
 
@@ -36,13 +35,28 @@ class TestScanCodes:
 
     def test_media_keys_in_vk_codes(self):
         """Media keys should have VK codes."""
-        media_keys = ["media_play_pause", "media_next", "media_previous", "volume_up", "volume_down"]
+        media_keys = [
+            "media_play_pause",
+            "media_next",
+            "media_previous",
+            "volume_up",
+            "volume_down",
+        ]
         for key in media_keys:
             assert key in keyboard.MEDIA_VK_CODES, f"Missing VK code for '{key}'"
 
     def test_extended_keys_marked(self):
         """Arrow keys and navigation should be marked as extended."""
-        extended_keys = ["up", "down", "left", "right", "insert", "delete", "home", "end"]
+        extended_keys = [
+            "up",
+            "down",
+            "left",
+            "right",
+            "insert",
+            "delete",
+            "home",
+            "end",
+        ]
         for key in extended_keys:
             _, is_extended = keyboard.SCAN_CODES[key]
             assert is_extended, f"'{key}' should be marked as extended"
@@ -82,7 +96,7 @@ class TestInputCreation:
 class TestKeyPressRelease:
     """Test press_key and release_key functions."""
 
-    @patch.object(keyboard, '_send_input')
+    @patch.object(keyboard, "_send_input")
     def test_press_key_valid(self, mock_send):
         """Valid key press should call SendInput."""
         mock_send.return_value = 1
@@ -94,7 +108,7 @@ class TestKeyPressRelease:
         assert mock_send.called
         assert "a" in keyboard._held_keys
 
-    @patch.object(keyboard, '_send_input')
+    @patch.object(keyboard, "_send_input")
     def test_press_key_invalid(self, mock_send):
         """Unknown key should return False."""
         result = keyboard.press_key("nonexistent_key_xyz")
@@ -102,7 +116,7 @@ class TestKeyPressRelease:
         assert result is False
         assert not mock_send.called
 
-    @patch.object(keyboard, '_send_input')
+    @patch.object(keyboard, "_send_input")
     def test_release_key_valid(self, mock_send):
         """Valid key release should call SendInput."""
         mock_send.return_value = 1
@@ -113,7 +127,7 @@ class TestKeyPressRelease:
         assert result is True
         assert "a" not in keyboard._held_keys
 
-    @patch.object(keyboard, '_send_input')
+    @patch.object(keyboard, "_send_input")
     def test_press_media_key(self, mock_send):
         """Media keys should use VK codes."""
         mock_send.return_value = 1
@@ -131,8 +145,8 @@ class TestKeyPressRelease:
 class TestTapKey:
     """Test tap_key function."""
 
-    @patch.object(keyboard, 'release_key')
-    @patch.object(keyboard, 'press_key')
+    @patch.object(keyboard, "release_key")
+    @patch.object(keyboard, "press_key")
     def test_tap_key_calls_press_and_release(self, mock_press, mock_release):
         """Tap should call press then release."""
         mock_press.return_value = True
@@ -144,8 +158,8 @@ class TestTapKey:
         mock_press.assert_called_once_with("a")
         mock_release.assert_called_once_with("a")
 
-    @patch.object(keyboard, 'release_key')
-    @patch.object(keyboard, 'press_key')
+    @patch.object(keyboard, "release_key")
+    @patch.object(keyboard, "press_key")
     def test_tap_key_fails_if_press_fails(self, mock_press, mock_release):
         """Tap should return False if press fails."""
         mock_press.return_value = False
@@ -159,8 +173,8 @@ class TestTapKey:
 class TestExecuteHotkey:
     """Test execute_hotkey function."""
 
-    @patch.object(keyboard, 'release_key')
-    @patch.object(keyboard, 'press_key')
+    @patch.object(keyboard, "release_key")
+    @patch.object(keyboard, "press_key")
     def test_execute_hotkey_presses_all_keys(self, mock_press, mock_release):
         """Hotkey should press all keys in order."""
         mock_press.return_value = True
@@ -172,8 +186,8 @@ class TestExecuteHotkey:
         calls = [c[0][0] for c in mock_press.call_args_list]
         assert calls == ["ctrl", "shift", "s"]
 
-    @patch.object(keyboard, 'release_key')
-    @patch.object(keyboard, 'press_key')
+    @patch.object(keyboard, "release_key")
+    @patch.object(keyboard, "press_key")
     def test_execute_hotkey_releases_in_reverse(self, mock_press, mock_release):
         """Hotkey should release keys in reverse order."""
         mock_press.return_value = True
@@ -185,8 +199,8 @@ class TestExecuteHotkey:
         calls = [c[0][0] for c in mock_release.call_args_list]
         assert calls == ["s", "shift", "ctrl"]
 
-    @patch.object(keyboard, 'release_key')
-    @patch.object(keyboard, 'press_key')
+    @patch.object(keyboard, "release_key")
+    @patch.object(keyboard, "press_key")
     def test_execute_hotkey_empty_list(self, mock_press, mock_release):
         """Empty hotkey should return True without doing anything."""
         result = keyboard.execute_hotkey([])
@@ -195,15 +209,17 @@ class TestExecuteHotkey:
         assert not mock_press.called
         assert not mock_release.called
 
-    @patch.object(keyboard, 'release_key')
-    @patch.object(keyboard, 'press_key')
+    @patch.object(keyboard, "release_key")
+    @patch.object(keyboard, "press_key")
     def test_execute_hotkey_releases_on_failure(self, mock_press, mock_release):
         """If a key fails to press, already pressed keys should be released."""
         # ctrl succeeds, shift fails
         mock_press.side_effect = [True, False]
         mock_release.return_value = True
 
-        result = keyboard.execute_hotkey(["ctrl", "shift", "s"], hold_ms=1, between_ms=1)
+        result = keyboard.execute_hotkey(
+            ["ctrl", "shift", "s"], hold_ms=1, between_ms=1
+        )
 
         assert result is False
         # Only ctrl was pressed, so only ctrl should be released
@@ -213,7 +229,7 @@ class TestExecuteHotkey:
 class TestReleaseAllModifiers:
     """Test release_all_modifiers function."""
 
-    @patch.object(keyboard, '_send_input')
+    @patch.object(keyboard, "_send_input")
     def test_releases_all_modifiers(self, mock_send):
         """Should send release for all modifier keys."""
         mock_send.return_value = 1
@@ -253,9 +269,9 @@ class TestStateTracking:
 class TestTypeText:
     """Test type_text function."""
 
-    @patch.object(keyboard, 'release_key')
-    @patch.object(keyboard, 'press_key')
-    @patch.object(keyboard, 'tap_key')
+    @patch.object(keyboard, "release_key")
+    @patch.object(keyboard, "press_key")
+    @patch.object(keyboard, "tap_key")
     def test_type_lowercase(self, mock_tap, mock_press, mock_release):
         """Lowercase text should just tap keys."""
         mock_tap.return_value = True
@@ -267,9 +283,9 @@ class TestTypeText:
         # No shift needed
         assert not mock_press.called
 
-    @patch.object(keyboard, 'release_key')
-    @patch.object(keyboard, 'press_key')
-    @patch.object(keyboard, 'tap_key')
+    @patch.object(keyboard, "release_key")
+    @patch.object(keyboard, "press_key")
+    @patch.object(keyboard, "tap_key")
     def test_type_uppercase_uses_shift(self, mock_tap, mock_press, mock_release):
         """Uppercase should press shift."""
         mock_tap.return_value = True

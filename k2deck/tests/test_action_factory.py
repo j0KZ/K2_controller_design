@@ -1,13 +1,14 @@
 """Tests for action_factory.py - Action creation from config dicts."""
 
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock
 
 from k2deck.core.action_factory import (
+    MAX_ACTION_DEPTH,
+    ActionCreationError,
     create_action,
     create_actions,
-    ActionCreationError,
-    MAX_ACTION_DEPTH,
 )
 
 
@@ -115,7 +116,7 @@ class TestCreateActions:
             configs = [
                 {"action": "hotkey"},
                 {"action": "nonexistent"},  # unknown
-                "not_a_dict",                # invalid
+                "not_a_dict",  # invalid
                 {"action": "hotkey"},
             ]
             result = create_actions(configs)

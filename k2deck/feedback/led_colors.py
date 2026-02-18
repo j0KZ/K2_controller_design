@@ -50,7 +50,9 @@ def led_note(base_note: int, color: str) -> int:
         ValueError: If color is not valid.
     """
     if color not in COLOR_OFFSETS:
-        raise ValueError(f"Invalid color: {color}. Must be one of: {list(COLOR_OFFSETS.keys())}")
+        raise ValueError(
+            f"Invalid color: {color}. Must be one of: {list(COLOR_OFFSETS.keys())}"
+        )
     return base_note + COLOR_OFFSETS[color]
 
 

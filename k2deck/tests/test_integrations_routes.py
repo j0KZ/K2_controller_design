@@ -85,7 +85,9 @@ class TestIntegrationStatusHelpers:
             details={"scenes": ["Scene 1"]},
         )
 
-        with patch("k2deck.web.routes.integrations._get_obs_status", return_value=mock_status):
+        with patch(
+            "k2deck.web.routes.integrations._get_obs_status", return_value=mock_status
+        ):
             response = self.client.get("/api/integrations/obs/status")
             assert response.status_code == 200
             data = response.json()
@@ -104,7 +106,9 @@ class TestIntegrationStatusHelpers:
             error="Connection refused",
         )
 
-        with patch("k2deck.web.routes.integrations._get_obs_status", return_value=mock_status):
+        with patch(
+            "k2deck.web.routes.integrations._get_obs_status", return_value=mock_status
+        ):
             response = self.client.get("/api/integrations/obs/status")
             assert response.status_code == 200
             data = response.json()
@@ -123,7 +127,10 @@ class TestIntegrationStatusHelpers:
             details={"user": "testuser"},
         )
 
-        with patch("k2deck.web.routes.integrations._get_spotify_status", return_value=mock_status):
+        with patch(
+            "k2deck.web.routes.integrations._get_spotify_status",
+            return_value=mock_status,
+        ):
             response = self.client.get("/api/integrations/spotify/status")
             data = response.json()
             assert data["connected"] is True
@@ -139,7 +146,10 @@ class TestIntegrationStatusHelpers:
             status="connected",
         )
 
-        with patch("k2deck.web.routes.integrations._get_twitch_status", return_value=mock_status):
+        with patch(
+            "k2deck.web.routes.integrations._get_twitch_status",
+            return_value=mock_status,
+        ):
             response = self.client.get("/api/integrations/twitch/status")
             data = response.json()
             assert data["connected"] is True
@@ -159,7 +169,9 @@ class TestIntegrationStatusHelpers:
         mock_client.is_available = True
         mock_client.connect.return_value = True
 
-        with patch("k2deck.web.routes.integrations._get_obs_status", return_value=mock_status):
+        with patch(
+            "k2deck.web.routes.integrations._get_obs_status", return_value=mock_status
+        ):
             with patch(
                 "k2deck.core.obs_client.get_obs_client",
                 return_value=mock_client,
@@ -199,7 +211,9 @@ class TestIntegrationStatusHelpers:
 
         mock_client = MagicMock()
 
-        with patch("k2deck.web.routes.integrations._get_obs_status", return_value=mock_status):
+        with patch(
+            "k2deck.web.routes.integrations._get_obs_status", return_value=mock_status
+        ):
             with patch(
                 "k2deck.core.obs_client.get_obs_client",
                 return_value=mock_client,
@@ -264,7 +278,10 @@ class TestIntegrationStatusHelperInternals:
 
     def test_obs_status_exception(self):
         """Should handle exception in _get_obs_status."""
-        with patch("k2deck.core.obs_client.get_obs_client", side_effect=Exception("import error")):
+        with patch(
+            "k2deck.core.obs_client.get_obs_client",
+            side_effect=Exception("import error"),
+        ):
             response = self.client.get("/api/integrations/obs/status")
             data = response.json()
             assert data["status"] == "error"
@@ -322,7 +339,9 @@ class TestIntegrationStatusHelperInternals:
         mock_client.is_available = True
         mock_client.is_connected = True
 
-        with patch("k2deck.core.twitch_client.get_twitch_client", return_value=mock_client):
+        with patch(
+            "k2deck.core.twitch_client.get_twitch_client", return_value=mock_client
+        ):
             response = self.client.get("/api/integrations/twitch/status")
             data = response.json()
             assert data["connected"] is True
@@ -333,7 +352,9 @@ class TestIntegrationStatusHelperInternals:
         mock_client.is_available = True
         mock_client.is_connected = False
 
-        with patch("k2deck.core.twitch_client.get_twitch_client", return_value=mock_client):
+        with patch(
+            "k2deck.core.twitch_client.get_twitch_client", return_value=mock_client
+        ):
             response = self.client.get("/api/integrations/twitch/status")
             data = response.json()
             assert data["connected"] is False
@@ -341,7 +362,10 @@ class TestIntegrationStatusHelperInternals:
 
     def test_twitch_status_exception(self):
         """Should handle exception in _get_twitch_status."""
-        with patch("k2deck.core.twitch_client.get_twitch_client", side_effect=Exception("twitch error")):
+        with patch(
+            "k2deck.core.twitch_client.get_twitch_client",
+            side_effect=Exception("twitch error"),
+        ):
             response = self.client.get("/api/integrations/twitch/status")
             data = response.json()
             assert data["status"] == "error"
@@ -359,7 +383,9 @@ class TestIntegrationStatusHelperInternals:
 
     def test_obs_connect_exception(self):
         """Should return 500 on unexpected OBS connect error."""
-        with patch("k2deck.core.obs_client.get_obs_client", side_effect=Exception("unexpected")):
+        with patch(
+            "k2deck.core.obs_client.get_obs_client", side_effect=Exception("unexpected")
+        ):
             response = self.client.post("/api/integrations/obs/connect")
             assert response.status_code == 500
 
@@ -385,6 +411,9 @@ class TestIntegrationStatusHelperInternals:
 
     def test_obs_disconnect_exception(self):
         """Should return 500 on OBS disconnect failure."""
-        with patch("k2deck.core.obs_client.get_obs_client", side_effect=Exception("disconnect fail")):
+        with patch(
+            "k2deck.core.obs_client.get_obs_client",
+            side_effect=Exception("disconnect fail"),
+        ):
             response = self.client.post("/api/integrations/obs/disconnect")
             assert response.status_code == 500

@@ -9,7 +9,6 @@ import sys
 import threading
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 try:
     import pystray
@@ -89,8 +88,16 @@ def create_tray_icon() -> "Image.Image | None":
     outline_color = (120, 60, 0)
     text_color = (40, 20, 0)
     for dx, dy in [(-3, 0), (3, 0), (0, -3), (0, 3)]:
-        draw.text((x_start + dx, y + dy), "K", fill=outline_color, font=font, anchor="lm")
-        draw.text((x_start + k_w + gap + dx, y + dy), "2", fill=outline_color, font=font, anchor="lm")
+        draw.text(
+            (x_start + dx, y + dy), "K", fill=outline_color, font=font, anchor="lm"
+        )
+        draw.text(
+            (x_start + k_w + gap + dx, y + dy),
+            "2",
+            fill=outline_color,
+            font=font,
+            anchor="lm",
+        )
     draw.text((x_start, y), "K", fill=text_color, font=font, anchor="lm")
     draw.text((x_start + k_w + gap, y), "2", fill=text_color, font=font, anchor="lm")
 
@@ -129,7 +136,7 @@ class K2DeckApp:
 
         # State
         self._status = "Disconnected"
-        self._tray: "pystray.Icon | None" = None
+        self._tray: pystray.Icon | None = None
 
     def _load_config(self) -> bool:
         """Load configuration."""
@@ -195,7 +202,9 @@ class K2DeckApp:
                 self._fader_debouncer.debounce(
                     f"cc_{event.cc}",
                     event.value,
-                    lambda val, cc=event.cc, ch=event.channel: self._apply_fader_value(cc, ch, val),
+                    lambda val, cc=event.cc, ch=event.channel: self._apply_fader_value(
+                        cc, ch, val
+                    ),
                 )
 
                 # ALWAYS let extreme values (0 and 127) through immediately
@@ -248,7 +257,9 @@ class K2DeckApp:
         action, mapping_config = self._mapping_engine.resolve(final_event)
         if action:
             logger.info("Applying final fader value: cc_%d = %d", cc, value)
-            self._executor.submit(self._execute_action, action, final_event, mapping_config)
+            self._executor.submit(
+                self._execute_action, action, final_event, mapping_config
+            )
 
     def _execute_action(
         self,
@@ -337,7 +348,10 @@ class K2DeckApp:
             self._setup_defaults()
 
             # Reset OSC action state for clean profile switch
-            from k2deck.actions.osc_send import OscSendRelativeAction, OscSendTriggerAction
+            from k2deck.actions.osc_send import (
+                OscSendRelativeAction,
+                OscSendTriggerAction,
+            )
 
             OscSendRelativeAction.reset_accumulators()
             OscSendTriggerAction.reset_toggle_states()
@@ -367,9 +381,7 @@ class K2DeckApp:
             config_arg = (
                 self._config_path if self._config_path != DEFAULT_CONFIG else None
             )
-            device_arg = (
-                self._device_name if self._device_name != "XONE:K2" else None
-            )
+            device_arg = self._device_name if self._device_name != "XONE:K2" else None
             enable_autostart(
                 config_path=config_arg,
                 device_name=device_arg,
@@ -486,9 +498,7 @@ class K2DeckApp:
 
 def main() -> None:
     """Main entry point."""
-    parser = argparse.ArgumentParser(
-        description="K2 Deck - Xone:K2 System Controller"
-    )
+    parser = argparse.ArgumentParser(description="K2 Deck - Xone:K2 System Controller")
     parser.add_argument(
         "--config",
         "-c",
@@ -521,6 +531,7 @@ def main() -> None:
     # MIDI learn mode
     if args.learn:
         from k2deck.tools.midi_learn import main as learn_main
+
         learn_main()
         return
 

@@ -15,7 +15,7 @@ import ctypes
 import logging
 import threading
 import time
-from ctypes import Structure, Union, c_long, c_ulong, c_ushort, sizeof, wintypes
+from ctypes import Structure, Union, c_long, c_ulong, c_ushort, sizeof
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +25,7 @@ KEYEVENTF_KEYUP = 0x0002
 KEYEVENTF_EXTENDEDKEY = 0x0001
 
 INPUT_KEYBOARD = 1
+
 
 # Windows API structures
 class KEYBDINPUT(Structure):
@@ -78,39 +79,70 @@ user32 = ctypes.windll.user32
 # Reference: https://www.win.tue.nl/~aeb/linux/kbd/scancodes-1.html
 SCAN_CODES: dict[str, tuple[int, bool]] = {
     # Letters (value, is_extended)
-    "a": (0x1E, False), "b": (0x30, False), "c": (0x2E, False), "d": (0x20, False),
-    "e": (0x12, False), "f": (0x21, False), "g": (0x22, False), "h": (0x23, False),
-    "i": (0x17, False), "j": (0x24, False), "k": (0x25, False), "l": (0x26, False),
-    "m": (0x32, False), "n": (0x31, False), "o": (0x18, False), "p": (0x19, False),
-    "q": (0x10, False), "r": (0x13, False), "s": (0x1F, False), "t": (0x14, False),
-    "u": (0x16, False), "v": (0x2F, False), "w": (0x11, False), "x": (0x2D, False),
-    "y": (0x15, False), "z": (0x2C, False),
-
+    "a": (0x1E, False),
+    "b": (0x30, False),
+    "c": (0x2E, False),
+    "d": (0x20, False),
+    "e": (0x12, False),
+    "f": (0x21, False),
+    "g": (0x22, False),
+    "h": (0x23, False),
+    "i": (0x17, False),
+    "j": (0x24, False),
+    "k": (0x25, False),
+    "l": (0x26, False),
+    "m": (0x32, False),
+    "n": (0x31, False),
+    "o": (0x18, False),
+    "p": (0x19, False),
+    "q": (0x10, False),
+    "r": (0x13, False),
+    "s": (0x1F, False),
+    "t": (0x14, False),
+    "u": (0x16, False),
+    "v": (0x2F, False),
+    "w": (0x11, False),
+    "x": (0x2D, False),
+    "y": (0x15, False),
+    "z": (0x2C, False),
     # Numbers (top row)
-    "0": (0x0B, False), "1": (0x02, False), "2": (0x03, False), "3": (0x04, False),
-    "4": (0x05, False), "5": (0x06, False), "6": (0x07, False), "7": (0x08, False),
-    "8": (0x09, False), "9": (0x0A, False),
-
+    "0": (0x0B, False),
+    "1": (0x02, False),
+    "2": (0x03, False),
+    "3": (0x04, False),
+    "4": (0x05, False),
+    "5": (0x06, False),
+    "6": (0x07, False),
+    "7": (0x08, False),
+    "8": (0x09, False),
+    "9": (0x0A, False),
     # Function keys
-    "f1": (0x3B, False), "f2": (0x3C, False), "f3": (0x3D, False), "f4": (0x3E, False),
-    "f5": (0x3F, False), "f6": (0x40, False), "f7": (0x41, False), "f8": (0x42, False),
-    "f9": (0x43, False), "f10": (0x44, False), "f11": (0x57, False), "f12": (0x58, False),
-
+    "f1": (0x3B, False),
+    "f2": (0x3C, False),
+    "f3": (0x3D, False),
+    "f4": (0x3E, False),
+    "f5": (0x3F, False),
+    "f6": (0x40, False),
+    "f7": (0x41, False),
+    "f8": (0x42, False),
+    "f9": (0x43, False),
+    "f10": (0x44, False),
+    "f11": (0x57, False),
+    "f12": (0x58, False),
     # Modifiers
-    "ctrl": (0x1D, False),        # Left Ctrl
+    "ctrl": (0x1D, False),  # Left Ctrl
     "ctrl_l": (0x1D, False),
-    "ctrl_r": (0x1D, True),       # Right Ctrl (extended)
-    "alt": (0x38, False),         # Left Alt
+    "ctrl_r": (0x1D, True),  # Right Ctrl (extended)
+    "alt": (0x38, False),  # Left Alt
     "alt_l": (0x38, False),
-    "alt_r": (0x38, True),        # Right Alt (extended) - AltGr
-    "shift": (0x2A, False),       # Left Shift
+    "alt_r": (0x38, True),  # Right Alt (extended) - AltGr
+    "shift": (0x2A, False),  # Left Shift
     "shift_l": (0x2A, False),
-    "shift_r": (0x36, False),     # Right Shift
-    "win": (0x5B, True),          # Left Windows (extended)
+    "shift_r": (0x36, False),  # Right Shift
+    "win": (0x5B, True),  # Left Windows (extended)
     "win_l": (0x5B, True),
-    "win_r": (0x5C, True),        # Right Windows (extended)
-    "cmd": (0x5B, True),          # Alias for Win
-
+    "win_r": (0x5C, True),  # Right Windows (extended)
+    "cmd": (0x5B, True),  # Alias for Win
     # Special keys
     "space": (0x39, False),
     "enter": (0x1C, False),
@@ -119,7 +151,6 @@ SCAN_CODES: dict[str, tuple[int, bool]] = {
     "backspace": (0x0E, False),
     "escape": (0x01, False),
     "esc": (0x01, False),
-
     # Navigation (extended keys)
     "insert": (0x52, True),
     "delete": (0x53, True),
@@ -129,30 +160,44 @@ SCAN_CODES: dict[str, tuple[int, bool]] = {
     "page_up": (0x49, True),
     "pagedown": (0x51, True),
     "page_down": (0x51, True),
-
     # Arrow keys (extended)
     "up": (0x48, True),
     "down": (0x50, True),
     "left": (0x4B, True),
     "right": (0x4D, True),
-
     # Punctuation and symbols
-    "`": (0x29, False), "~": (0x29, False),
-    "-": (0x0C, False), "_": (0x0C, False),
-    "=": (0x0D, False), "+": (0x0D, False),
-    "[": (0x1A, False), "{": (0x1A, False),
-    "]": (0x1B, False), "}": (0x1B, False),
-    "\\": (0x2B, False), "|": (0x2B, False),
-    ";": (0x27, False), ":": (0x27, False),
-    "'": (0x28, False), '"': (0x28, False),
-    ",": (0x33, False), "<": (0x33, False),
-    ".": (0x34, False), ">": (0x34, False),
-    "/": (0x35, False), "?": (0x35, False),
-
+    "`": (0x29, False),
+    "~": (0x29, False),
+    "-": (0x0C, False),
+    "_": (0x0C, False),
+    "=": (0x0D, False),
+    "+": (0x0D, False),
+    "[": (0x1A, False),
+    "{": (0x1A, False),
+    "]": (0x1B, False),
+    "}": (0x1B, False),
+    "\\": (0x2B, False),
+    "|": (0x2B, False),
+    ";": (0x27, False),
+    ":": (0x27, False),
+    "'": (0x28, False),
+    '"': (0x28, False),
+    ",": (0x33, False),
+    "<": (0x33, False),
+    ".": (0x34, False),
+    ">": (0x34, False),
+    "/": (0x35, False),
+    "?": (0x35, False),
     # Numpad
-    "numpad0": (0x52, False), "numpad1": (0x4F, False), "numpad2": (0x50, False),
-    "numpad3": (0x51, False), "numpad4": (0x4B, False), "numpad5": (0x4C, False),
-    "numpad6": (0x4D, False), "numpad7": (0x47, False), "numpad8": (0x48, False),
+    "numpad0": (0x52, False),
+    "numpad1": (0x4F, False),
+    "numpad2": (0x50, False),
+    "numpad3": (0x51, False),
+    "numpad4": (0x4B, False),
+    "numpad5": (0x4C, False),
+    "numpad6": (0x4D, False),
+    "numpad7": (0x47, False),
+    "numpad8": (0x48, False),
     "numpad9": (0x49, False),
     "numpad_add": (0x4E, False),
     "numpad_subtract": (0x4A, False),
@@ -161,7 +206,6 @@ SCAN_CODES: dict[str, tuple[int, bool]] = {
     "numpad_enter": (0x1C, True),
     "numpad_decimal": (0x53, False),
     "numlock": (0x45, False),
-
     # System keys
     "printscreen": (0x37, True),
     "print_screen": (0x37, True),
@@ -170,7 +214,6 @@ SCAN_CODES: dict[str, tuple[int, bool]] = {
     "pause": (0x45, True),
     "capslock": (0x3A, False),
     "caps_lock": (0x3A, False),
-
     # Media keys (scan codes via special handling)
     "media_play_pause": (0x22, True),
     "media_stop": (0x24, True),
@@ -204,8 +247,21 @@ MEDIA_VK_CODES: dict[str, int] = {
 }
 
 # Modifier keys for tracking state
-MODIFIER_KEYS = {"ctrl", "ctrl_l", "ctrl_r", "alt", "alt_l", "alt_r",
-                 "shift", "shift_l", "shift_r", "win", "win_l", "win_r", "cmd"}
+MODIFIER_KEYS = {
+    "ctrl",
+    "ctrl_l",
+    "ctrl_r",
+    "alt",
+    "alt_l",
+    "alt_r",
+    "shift",
+    "shift_l",
+    "shift_r",
+    "win",
+    "win_l",
+    "win_r",
+    "cmd",
+}
 
 # Thread safety
 _lock = threading.Lock()
@@ -420,10 +476,18 @@ def release_all_modifiers() -> None:
     after complex sequences.
     """
     modifiers = [
-        "ctrl", "ctrl_l", "ctrl_r",
-        "alt", "alt_l", "alt_r",
-        "shift", "shift_l", "shift_r",
-        "win", "win_l", "win_r",
+        "ctrl",
+        "ctrl_l",
+        "ctrl_r",
+        "alt",
+        "alt_l",
+        "alt_r",
+        "shift",
+        "shift_l",
+        "shift_r",
+        "win",
+        "win_l",
+        "win_r",
     ]
 
     with _lock:

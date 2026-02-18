@@ -129,9 +129,7 @@ class TestMappingEngine:
         config = {
             "midi_channel": 16,
             "mappings": {
-                "note_on": {
-                    "36": {"name": "Test", "action": "hotkey", "keys": ["a"]}
-                }
+                "note_on": {"36": {"name": "Test", "action": "hotkey", "keys": ["a"]}}
             },
         }
         path = create_temp_config(config)
@@ -242,19 +240,27 @@ class TestMappingEngine:
                     "channel": 16,
                     "mappings": {
                         "note_on": {
-                            "36": {"name": "Main Button", "action": "hotkey", "keys": ["a"]}
+                            "36": {
+                                "name": "Main Button",
+                                "action": "hotkey",
+                                "keys": ["a"],
+                            }
                         }
-                    }
+                    },
                 },
                 "k2_secondary": {
                     "channel": 15,
                     "mappings": {
                         "note_on": {
-                            "36": {"name": "Secondary Button", "action": "hotkey", "keys": ["b"]}
+                            "36": {
+                                "name": "Secondary Button",
+                                "action": "hotkey",
+                                "keys": ["b"],
+                            }
                         }
-                    }
-                }
-            }
+                    },
+                },
+            },
         }
         path = create_temp_config(config)
         try:
@@ -274,19 +280,27 @@ class TestMappingEngine:
                     "channel": 16,
                     "mappings": {
                         "note_on": {
-                            "36": {"name": "Main Button", "action": "hotkey", "keys": ["a"]}
+                            "36": {
+                                "name": "Main Button",
+                                "action": "hotkey",
+                                "keys": ["a"],
+                            }
                         }
-                    }
+                    },
                 },
                 "k2_secondary": {
                     "channel": 15,
                     "mappings": {
                         "note_on": {
-                            "36": {"name": "Secondary Button", "action": "hotkey", "keys": ["b"]}
+                            "36": {
+                                "name": "Secondary Button",
+                                "action": "hotkey",
+                                "keys": ["b"],
+                            }
                         }
-                    }
-                }
-            }
+                    },
+                },
+            },
         }
         path = create_temp_config(config)
         try:

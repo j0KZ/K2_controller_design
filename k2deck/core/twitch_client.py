@@ -24,6 +24,7 @@ def _load_credentials_from_keyring() -> tuple[str | None, str | None]:
     """
     try:
         from k2deck.core.secure_storage import get_twitch_credentials
+
         return get_twitch_credentials()
     except ImportError:
         return None, None
@@ -40,11 +41,13 @@ def _load_credentials_from_env() -> tuple[str | None, str | None]:
         os.environ.get("TWITCH_CLIENT_SECRET"),
     )
 
+
 # Optional dependency
 try:
-    from twitchAPI.twitch import Twitch
     from twitchAPI.oauth import UserAuthenticator
+    from twitchAPI.twitch import Twitch
     from twitchAPI.type import AuthScope
+
     HAS_TWITCH = True
 except ImportError:
     HAS_TWITCH = False
@@ -61,13 +64,13 @@ MIN_ACTION_INTERVAL = 1.0
 
 # Required scopes
 TWITCH_SCOPES = [
-    "channel:manage:broadcast",    # Markers, title, game
-    "clips:edit",                   # Create clips
-    "channel:manage:predictions",   # Predictions
-    "chat:edit",                    # Send chat messages
-    "chat:read",                    # Read chat
-    "user:read:chat",               # Read user chat
-    "user:write:chat",              # Write user chat
+    "channel:manage:broadcast",  # Markers, title, game
+    "clips:edit",  # Create clips
+    "channel:manage:predictions",  # Predictions
+    "chat:edit",  # Send chat messages
+    "chat:read",  # Read chat
+    "user:read:chat",  # Read user chat
+    "user:write:chat",  # Write user chat
 ]
 
 
@@ -163,9 +166,7 @@ class TwitchClient:
             return True
 
         if not HAS_TWITCH:
-            logger.warning(
-                "twitchAPI not installed. Run: pip install twitchAPI"
-            )
+            logger.warning("twitchAPI not installed. Run: pip install twitchAPI")
             return False
 
         # Configure credentials
@@ -219,7 +220,7 @@ class TwitchClient:
                         self._initialized = True
                         logger.info(
                             "Twitch connected (cached tokens) as: %s",
-                            users.data[0].display_name
+                            users.data[0].display_name,
                         )
                         return True
                 except Exception as e:
@@ -255,7 +256,7 @@ class TwitchClient:
             logger.info(
                 "Twitch connected as: %s (ID: %s)",
                 users.data[0].display_name,
-                self._user_id
+                self._user_id,
             )
             return True
 
@@ -268,6 +269,7 @@ class TwitchClient:
         """Load tokens from disk (DPAPI encrypted on Windows)."""
         try:
             from k2deck.core.secure_storage import load_encrypted_json
+
             return load_encrypted_json(TOKEN_FILE)
         except ImportError:
             # Fallback if secure_storage not available
@@ -275,6 +277,7 @@ class TwitchClient:
                 return None
             try:
                 import json
+
                 with open(TOKEN_FILE) as f:
                     return json.load(f)
             except Exception as e:
@@ -285,6 +288,7 @@ class TwitchClient:
         """Save tokens to disk (DPAPI encrypted on Windows)."""
         try:
             from k2deck.core.secure_storage import save_encrypted_json
+
             data = {
                 "access_token": access_token,
                 "refresh_token": refresh_token,
@@ -297,12 +301,16 @@ class TwitchClient:
             # Fallback if secure_storage not available
             try:
                 import json
+
                 CONFIG_DIR.mkdir(parents=True, exist_ok=True)
                 with open(TOKEN_FILE, "w") as f:
-                    json.dump({
-                        "access_token": access_token,
-                        "refresh_token": refresh_token,
-                    }, f)
+                    json.dump(
+                        {
+                            "access_token": access_token,
+                            "refresh_token": refresh_token,
+                        },
+                        f,
+                    )
                 logger.debug("Twitch tokens saved (unencrypted)")
             except Exception as e:
                 logger.warning("Failed to save Twitch tokens: %s", e)
@@ -347,14 +355,14 @@ class TwitchClient:
         Returns:
             True if marker created successfully.
         """
+
         async def _create():
             if description:
                 desc = description[:140]
             else:
                 desc = None
             await self._twitch.create_stream_marker(
-                user_id=self._broadcaster_id,
-                description=desc
+                user_id=self._broadcaster_id, description=desc
             )
             logger.info("Twitch marker created: %s", description or "(no description)")
             return True
@@ -368,10 +376,10 @@ class TwitchClient:
         Returns:
             Clip URL if successful, None otherwise.
         """
+
         async def _create():
             result = await self._twitch.create_clip(
-                broadcaster_id=self._broadcaster_id,
-                has_delay=False
+                broadcaster_id=self._broadcaster_id, has_delay=False
             )
             if result and result.data:
                 clip_id = result.data[0].id
@@ -391,12 +399,13 @@ class TwitchClient:
         Returns:
             True if message sent successfully.
         """
+
         async def _send():
             msg = message[:500]
             await self._twitch.send_chat_message(
                 broadcaster_id=self._broadcaster_id,
                 sender_id=self._user_id,
-                message=msg
+                message=msg,
             )
             logger.info("Twitch chat sent: %s", msg[:50])
             return True
@@ -413,10 +422,10 @@ class TwitchClient:
         Returns:
             True if title updated successfully.
         """
+
         async def _update():
             await self._twitch.modify_channel_information(
-                broadcaster_id=self._broadcaster_id,
-                title=title
+                broadcaster_id=self._broadcaster_id, title=title
             )
             logger.info("Twitch title updated: %s", title)
             return True
@@ -433,6 +442,7 @@ class TwitchClient:
         Returns:
             True if game updated successfully.
         """
+
         async def _update():
             # First search for the game to get its ID
             games = await self._twitch.get_games(names=[game_name])
@@ -442,8 +452,7 @@ class TwitchClient:
 
             game_id = games.data[0].id
             await self._twitch.modify_channel_information(
-                broadcaster_id=self._broadcaster_id,
-                game_id=game_id
+                broadcaster_id=self._broadcaster_id, game_id=game_id
             )
             logger.info("Twitch game updated: %s", game_name)
             return True
@@ -457,6 +466,7 @@ class TwitchClient:
         Returns:
             Dict with stream info or None if not streaming.
         """
+
         async def _get():
             streams = await self._twitch.get_streams(user_id=[self._broadcaster_id])
             if not streams or not streams.data:
@@ -467,7 +477,9 @@ class TwitchClient:
                 "title": stream.title,
                 "game_name": stream.game_name,
                 "viewer_count": stream.viewer_count,
-                "started_at": stream.started_at.isoformat() if stream.started_at else None,
+                "started_at": stream.started_at.isoformat()
+                if stream.started_at
+                else None,
                 "is_live": True,
             }
 

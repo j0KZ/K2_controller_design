@@ -1,9 +1,9 @@
 """Extended tests for OBS client - error paths and edge cases."""
 
-from unittest.mock import patch, MagicMock
 import time
+from unittest.mock import MagicMock, patch
 
-from k2deck.core.obs_client import OBSClientManager, get_obs_client
+from k2deck.core.obs_client import OBSClientManager
 
 
 class TestOBSClientErrorPaths:
@@ -13,8 +13,8 @@ class TestOBSClientErrorPaths:
         """Reset singleton for each test."""
         OBSClientManager._instance = None
 
-    @patch('k2deck.core.obs_client.HAS_OBSWS', True)
-    @patch('k2deck.core.obs_client.obs')
+    @patch("k2deck.core.obs_client.HAS_OBSWS", True)
+    @patch("k2deck.core.obs_client.obs")
     def test_connect_rate_limiting(self, mock_obs):
         """Should skip connect if called too quickly."""
         mock_obs.ReqClient.side_effect = Exception("fail")
@@ -27,8 +27,8 @@ class TestOBSClientErrorPaths:
         result = client.connect()
         assert result is False  # not connected, but rate limited
 
-    @patch('k2deck.core.obs_client.HAS_OBSWS', True)
-    @patch('k2deck.core.obs_client.obs')
+    @patch("k2deck.core.obs_client.HAS_OBSWS", True)
+    @patch("k2deck.core.obs_client.obs")
     def test_connect_obs_sdk_error(self, mock_obs):
         """Should handle OBSSDKError during connect."""
         mock_obs.ReqClient.side_effect = Exception("auth failed")
@@ -39,8 +39,8 @@ class TestOBSClientErrorPaths:
         assert result is False
         assert client.last_error is not None
 
-    @patch('k2deck.core.obs_client.HAS_OBSWS', True)
-    @patch('k2deck.core.obs_client.obs')
+    @patch("k2deck.core.obs_client.HAS_OBSWS", True)
+    @patch("k2deck.core.obs_client.obs")
     def test_disconnect_with_client(self, mock_obs):
         """Should disconnect and clear state."""
         mock_client = MagicMock()
@@ -58,8 +58,8 @@ class TestOBSClientErrorPaths:
         assert client.is_connected is False
         mock_client.disconnect.assert_called_once()
 
-    @patch('k2deck.core.obs_client.HAS_OBSWS', True)
-    @patch('k2deck.core.obs_client.obs')
+    @patch("k2deck.core.obs_client.HAS_OBSWS", True)
+    @patch("k2deck.core.obs_client.obs")
     def test_disconnect_handles_error(self, mock_obs):
         """Should handle error during disconnect gracefully."""
         mock_client = MagicMock()
@@ -82,8 +82,8 @@ class TestOBSClientErrorPaths:
         client.disconnect()  # should not raise
         assert client.is_connected is False
 
-    @patch('k2deck.core.obs_client.HAS_OBSWS', True)
-    @patch('k2deck.core.obs_client.obs')
+    @patch("k2deck.core.obs_client.HAS_OBSWS", True)
+    @patch("k2deck.core.obs_client.obs")
     def test_ensure_connected_already_connected(self, mock_obs):
         """Should return True if already connected."""
         mock_client = MagicMock()
@@ -107,12 +107,12 @@ class TestOBSClientErrorPaths:
     def test_get_client_returns_none_when_not_connected(self):
         """Should return None when connection fails."""
         client = OBSClientManager()
-        with patch.object(client, 'connect', return_value=False):
+        with patch.object(client, "connect", return_value=False):
             result = client.get_client()
         assert result is None
 
-    @patch('k2deck.core.obs_client.HAS_OBSWS', True)
-    @patch('k2deck.core.obs_client.obs')
+    @patch("k2deck.core.obs_client.HAS_OBSWS", True)
+    @patch("k2deck.core.obs_client.obs")
     def test_set_scene_not_connected(self, mock_obs):
         """Should return False when not connected."""
         mock_obs.ReqClient.side_effect = Exception("fail")
@@ -121,8 +121,8 @@ class TestOBSClientErrorPaths:
         result = client.set_scene("Gaming")
         assert result is False
 
-    @patch('k2deck.core.obs_client.HAS_OBSWS', True)
-    @patch('k2deck.core.obs_client.obs')
+    @patch("k2deck.core.obs_client.HAS_OBSWS", True)
+    @patch("k2deck.core.obs_client.obs")
     def test_set_scene_request_error(self, mock_obs):
         """Should handle request error in set_scene."""
         mock_client = MagicMock()
@@ -138,8 +138,8 @@ class TestOBSClientErrorPaths:
         result = client.set_scene("Nonexistent")
         assert result is False
 
-    @patch('k2deck.core.obs_client.HAS_OBSWS', True)
-    @patch('k2deck.core.obs_client.obs')
+    @patch("k2deck.core.obs_client.HAS_OBSWS", True)
+    @patch("k2deck.core.obs_client.obs")
     def test_toggle_source_not_found(self, mock_obs):
         """Should return False when source not found."""
         mock_client = MagicMock()
@@ -157,8 +157,8 @@ class TestOBSClientErrorPaths:
         result = client.toggle_source_visibility("Main", "Missing")
         assert result is False
 
-    @patch('k2deck.core.obs_client.HAS_OBSWS', True)
-    @patch('k2deck.core.obs_client.obs')
+    @patch("k2deck.core.obs_client.HAS_OBSWS", True)
+    @patch("k2deck.core.obs_client.obs")
     def test_toggle_source_error(self, mock_obs):
         """Should handle error in toggle_source_visibility."""
         mock_client = MagicMock()
@@ -174,8 +174,8 @@ class TestOBSClientErrorPaths:
         result = client.toggle_source_visibility("Main", "Webcam")
         assert result is False
 
-    @patch('k2deck.core.obs_client.HAS_OBSWS', True)
-    @patch('k2deck.core.obs_client.obs')
+    @patch("k2deck.core.obs_client.HAS_OBSWS", True)
+    @patch("k2deck.core.obs_client.obs")
     def test_toggle_stream_invalid_action(self, mock_obs):
         """Should return False for invalid stream action."""
         mock_client = MagicMock()
@@ -190,8 +190,8 @@ class TestOBSClientErrorPaths:
         result = client.toggle_stream("invalid_action")
         assert result is False
 
-    @patch('k2deck.core.obs_client.HAS_OBSWS', True)
-    @patch('k2deck.core.obs_client.obs')
+    @patch("k2deck.core.obs_client.HAS_OBSWS", True)
+    @patch("k2deck.core.obs_client.obs")
     def test_toggle_stream_error(self, mock_obs):
         """Should handle error in toggle_stream."""
         mock_client = MagicMock()
@@ -207,8 +207,8 @@ class TestOBSClientErrorPaths:
         result = client.toggle_stream("toggle")
         assert result is False
 
-    @patch('k2deck.core.obs_client.HAS_OBSWS', True)
-    @patch('k2deck.core.obs_client.obs')
+    @patch("k2deck.core.obs_client.HAS_OBSWS", True)
+    @patch("k2deck.core.obs_client.obs")
     def test_toggle_record_start_stop(self, mock_obs):
         """Should handle record start and stop."""
         mock_client = MagicMock()
@@ -227,8 +227,8 @@ class TestOBSClientErrorPaths:
         assert client.toggle_record("stop") is True
         mock_client.stop_record.assert_called_once()
 
-    @patch('k2deck.core.obs_client.HAS_OBSWS', True)
-    @patch('k2deck.core.obs_client.obs')
+    @patch("k2deck.core.obs_client.HAS_OBSWS", True)
+    @patch("k2deck.core.obs_client.obs")
     def test_toggle_record_invalid_action(self, mock_obs):
         """Should return False for invalid record action."""
         mock_client = MagicMock()
@@ -243,8 +243,8 @@ class TestOBSClientErrorPaths:
         result = client.toggle_record("invalid")
         assert result is False
 
-    @patch('k2deck.core.obs_client.HAS_OBSWS', True)
-    @patch('k2deck.core.obs_client.obs')
+    @patch("k2deck.core.obs_client.HAS_OBSWS", True)
+    @patch("k2deck.core.obs_client.obs")
     def test_toggle_record_error(self, mock_obs):
         """Should handle error in toggle_record."""
         mock_client = MagicMock()
@@ -260,8 +260,8 @@ class TestOBSClientErrorPaths:
         result = client.toggle_record("toggle")
         assert result is False
 
-    @patch('k2deck.core.obs_client.HAS_OBSWS', True)
-    @patch('k2deck.core.obs_client.obs')
+    @patch("k2deck.core.obs_client.HAS_OBSWS", True)
+    @patch("k2deck.core.obs_client.obs")
     def test_toggle_mute_error(self, mock_obs):
         """Should handle error in toggle_mute."""
         mock_client = MagicMock()
@@ -277,8 +277,8 @@ class TestOBSClientErrorPaths:
         result = client.toggle_mute("Mic/Aux")
         assert result is False
 
-    @patch('k2deck.core.obs_client.HAS_OBSWS', True)
-    @patch('k2deck.core.obs_client.obs')
+    @patch("k2deck.core.obs_client.HAS_OBSWS", True)
+    @patch("k2deck.core.obs_client.obs")
     def test_get_scenes_not_connected(self, mock_obs):
         """Should return empty list when not connected."""
         mock_obs.ReqClient.side_effect = Exception("fail")
@@ -287,8 +287,8 @@ class TestOBSClientErrorPaths:
         result = client.get_scenes()
         assert result == []
 
-    @patch('k2deck.core.obs_client.HAS_OBSWS', True)
-    @patch('k2deck.core.obs_client.obs')
+    @patch("k2deck.core.obs_client.HAS_OBSWS", True)
+    @patch("k2deck.core.obs_client.obs")
     def test_get_scenes_error(self, mock_obs):
         """Should return empty list on error."""
         mock_client = MagicMock()
@@ -304,8 +304,8 @@ class TestOBSClientErrorPaths:
         result = client.get_scenes()
         assert result == []
 
-    @patch('k2deck.core.obs_client.HAS_OBSWS', True)
-    @patch('k2deck.core.obs_client.obs')
+    @patch("k2deck.core.obs_client.HAS_OBSWS", True)
+    @patch("k2deck.core.obs_client.obs")
     def test_set_source_visibility_explicit(self, mock_obs):
         """Should set explicit visibility (not toggle)."""
         mock_client = MagicMock()

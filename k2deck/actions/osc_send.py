@@ -30,7 +30,7 @@ def _apply_curve(normalized: float, curve: str) -> float:
         Curved value in 0.0-1.0 range.
     """
     if curve == "exponential":
-        return normalized ** 3
+        return normalized**3
     return normalized
 
 
@@ -91,8 +91,11 @@ class OscSendAction(Action):
 
             logger.debug(
                 "OSC %s %s=%.3f (midi=%d, curve=%s)",
-                self._address, self._param, scaled,
-                event.value, self._curve,
+                self._address,
+                self._param,
+                scaled,
+                event.value,
+                self._curve,
             )
         except Exception as e:
             logger.error("OscSendAction error: %s", e)
@@ -164,7 +167,10 @@ class OscSendRelativeAction(Action):
 
             logger.debug(
                 "OSC relative %s %s=%.2f (delta=%.1f)",
-                self._address, self._param, new_value, delta,
+                self._address,
+                self._param,
+                new_value,
+                delta,
             )
         except Exception as e:
             logger.error("OscSendRelativeAction error: %s", e)
@@ -222,7 +228,10 @@ class OscSendTriggerAction(Action):
 
             logger.debug(
                 "OSC trigger %s %s=%.1f (mode=%s)",
-                self._address, self._param, send_value, self._mode,
+                self._address,
+                self._param,
+                send_value,
+                self._mode,
             )
         except Exception as e:
             logger.error("OscSendTriggerAction error: %s", e)

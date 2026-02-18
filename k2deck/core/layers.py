@@ -17,8 +17,9 @@ Hardware Layer Button:
 
 import logging
 import threading
+from collections.abc import Callable
 from enum import IntEnum
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from k2deck.core.midi_listener import MidiEvent
@@ -28,6 +29,7 @@ logger = logging.getLogger(__name__)
 
 class Layer(IntEnum):
     """Layer identifiers."""
+
     LAYER_1 = 1
     LAYER_2 = 2
     LAYER_3 = 3
@@ -214,8 +216,12 @@ def resolve_layer_mapping(mapping_config: dict | None, note_or_cc: int) -> dict 
             if key in mapping_config and key not in layer_mapping:
                 layer_mapping[key] = mapping_config[key]
 
-        logger.debug("Layer %d mapping for %d: %s", get_current_layer(), note_or_cc,
-                     layer_mapping.get("name", "unnamed"))
+        logger.debug(
+            "Layer %d mapping for %d: %s",
+            get_current_layer(),
+            note_or_cc,
+            layer_mapping.get("name", "unnamed"),
+        )
         return layer_mapping
 
     # Check if any layer-specific keys exist (meaning other layers are defined)

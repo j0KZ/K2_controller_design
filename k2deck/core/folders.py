@@ -6,7 +6,7 @@ multiplying available controls without changing the physical layer.
 
 import logging
 import threading
-from typing import Callable
+from collections.abc import Callable
 
 logger = logging.getLogger(__name__)
 
@@ -79,7 +79,9 @@ class FolderManager:
 
         with self._lock:
             # Check max depth
-            current_depth = 0 if self._current_folder is None else len(self._folder_stack) + 1
+            current_depth = (
+                0 if self._current_folder is None else len(self._folder_stack) + 1
+            )
             if current_depth >= MAX_DEPTH:
                 logger.warning(
                     "FolderManager: max depth %d reached, cannot enter '%s'",

@@ -123,6 +123,7 @@ class LedManager:
             times: Number of flashes.
             interval: Seconds between on/off transitions.
         """
+
         def flash_thread():
             with self._lock:
                 previous_color = self._state.get(base_note)
@@ -196,6 +197,7 @@ class LedManager:
             notes: List of base notes to animate.
             delay: Delay between each LED.
         """
+
         def animation_thread():
             # Sweep green
             for note in notes:
@@ -233,9 +235,7 @@ def get_led_manager() -> LedManager:
     """
     global _led_manager
     if _led_manager is None:
-        raise RuntimeError(
-            "LedManager not initialized. Call init_led_manager() first."
-        )
+        raise RuntimeError("LedManager not initialized. Call init_led_manager() first.")
     return _led_manager
 
 

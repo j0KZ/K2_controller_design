@@ -42,10 +42,38 @@ K2_LAYOUT = {
         {
             "type": "encoder-row",
             "controls": [
-                {"id": "E1", "type": "encoder", "hasLed": True, "hasPush": True, "cc": 0, "pushNote": 32},
-                {"id": "E2", "type": "encoder", "hasLed": True, "hasPush": True, "cc": 1, "pushNote": 33},
-                {"id": "E3", "type": "encoder", "hasLed": True, "hasPush": True, "cc": 2, "pushNote": 34},
-                {"id": "E4", "type": "encoder", "hasLed": True, "hasPush": True, "cc": 3, "pushNote": 35},
+                {
+                    "id": "E1",
+                    "type": "encoder",
+                    "hasLed": True,
+                    "hasPush": True,
+                    "cc": 0,
+                    "pushNote": 32,
+                },
+                {
+                    "id": "E2",
+                    "type": "encoder",
+                    "hasLed": True,
+                    "hasPush": True,
+                    "cc": 1,
+                    "pushNote": 33,
+                },
+                {
+                    "id": "E3",
+                    "type": "encoder",
+                    "hasLed": True,
+                    "hasPush": True,
+                    "cc": 2,
+                    "pushNote": 34,
+                },
+                {
+                    "id": "E4",
+                    "type": "encoder",
+                    "hasLed": True,
+                    "hasPush": True,
+                    "cc": 3,
+                    "pushNote": 35,
+                },
             ],
         },
         # Row 1-3: Potentiometers (12x, 3 rows of 4)
@@ -80,37 +108,133 @@ K2_LAYOUT = {
         {
             "type": "button-row",
             "controls": [
-                {"id": "A", "type": "button", "note": 36, "hasLed": True, "ledNotes": {"red": 36, "amber": 72, "green": 108}},
-                {"id": "B", "type": "button", "note": 37, "hasLed": True, "ledNotes": {"red": 37, "amber": 73, "green": 109}},
-                {"id": "C", "type": "button", "note": 38, "hasLed": True, "ledNotes": {"red": 38, "amber": 74, "green": 110}},
-                {"id": "D", "type": "button", "note": 39, "hasLed": True, "ledNotes": {"red": 39, "amber": 75, "green": 111}},
+                {
+                    "id": "A",
+                    "type": "button",
+                    "note": 36,
+                    "hasLed": True,
+                    "ledNotes": {"red": 36, "amber": 72, "green": 108},
+                },
+                {
+                    "id": "B",
+                    "type": "button",
+                    "note": 37,
+                    "hasLed": True,
+                    "ledNotes": {"red": 37, "amber": 73, "green": 109},
+                },
+                {
+                    "id": "C",
+                    "type": "button",
+                    "note": 38,
+                    "hasLed": True,
+                    "ledNotes": {"red": 38, "amber": 74, "green": 110},
+                },
+                {
+                    "id": "D",
+                    "type": "button",
+                    "note": 39,
+                    "hasLed": True,
+                    "ledNotes": {"red": 39, "amber": 75, "green": 111},
+                },
             ],
         },
         {
             "type": "button-row",
             "controls": [
-                {"id": "E", "type": "button", "note": 40, "hasLed": True, "ledNotes": {"red": 40, "amber": 76, "green": 112}},
-                {"id": "F", "type": "button", "note": 41, "hasLed": True, "ledNotes": {"red": 41, "amber": 77, "green": 113}},
-                {"id": "G", "type": "button", "note": 42, "hasLed": True, "ledNotes": {"red": 42, "amber": 78, "green": 114}},
-                {"id": "H", "type": "button", "note": 43, "hasLed": True, "ledNotes": {"red": 43, "amber": 79, "green": 115}},
+                {
+                    "id": "E",
+                    "type": "button",
+                    "note": 40,
+                    "hasLed": True,
+                    "ledNotes": {"red": 40, "amber": 76, "green": 112},
+                },
+                {
+                    "id": "F",
+                    "type": "button",
+                    "note": 41,
+                    "hasLed": True,
+                    "ledNotes": {"red": 41, "amber": 77, "green": 113},
+                },
+                {
+                    "id": "G",
+                    "type": "button",
+                    "note": 42,
+                    "hasLed": True,
+                    "ledNotes": {"red": 42, "amber": 78, "green": 114},
+                },
+                {
+                    "id": "H",
+                    "type": "button",
+                    "note": 43,
+                    "hasLed": True,
+                    "ledNotes": {"red": 43, "amber": 79, "green": 115},
+                },
             ],
         },
         {
             "type": "button-row",
             "controls": [
-                {"id": "I", "type": "button", "note": 44, "hasLed": True, "ledNotes": {"red": 44, "amber": 80, "green": 116}},
-                {"id": "J", "type": "button", "note": 45, "hasLed": True, "ledNotes": {"red": 45, "amber": 81, "green": 117}},
-                {"id": "K", "type": "button", "note": 46, "hasLed": True, "ledNotes": {"red": 46, "amber": 82, "green": 118}},
-                {"id": "L", "type": "button", "note": 47, "hasLed": True, "ledNotes": {"red": 47, "amber": 83, "green": 119}},
+                {
+                    "id": "I",
+                    "type": "button",
+                    "note": 44,
+                    "hasLed": True,
+                    "ledNotes": {"red": 44, "amber": 80, "green": 116},
+                },
+                {
+                    "id": "J",
+                    "type": "button",
+                    "note": 45,
+                    "hasLed": True,
+                    "ledNotes": {"red": 45, "amber": 81, "green": 117},
+                },
+                {
+                    "id": "K",
+                    "type": "button",
+                    "note": 46,
+                    "hasLed": True,
+                    "ledNotes": {"red": 46, "amber": 82, "green": 118},
+                },
+                {
+                    "id": "L",
+                    "type": "button",
+                    "note": 47,
+                    "hasLed": True,
+                    "ledNotes": {"red": 47, "amber": 83, "green": 119},
+                },
             ],
         },
         {
             "type": "button-row",
             "controls": [
-                {"id": "M", "type": "button", "note": 48, "hasLed": True, "ledNotes": {"red": 48, "amber": 84, "green": 120}},
-                {"id": "N", "type": "button", "note": 49, "hasLed": True, "ledNotes": {"red": 49, "amber": 85, "green": 121}},
-                {"id": "O", "type": "button", "note": 50, "hasLed": True, "ledNotes": {"red": 50, "amber": 86, "green": 122}},
-                {"id": "P", "type": "button", "note": 51, "hasLed": True, "ledNotes": {"red": 51, "amber": 87, "green": 123}},
+                {
+                    "id": "M",
+                    "type": "button",
+                    "note": 48,
+                    "hasLed": True,
+                    "ledNotes": {"red": 48, "amber": 84, "green": 120},
+                },
+                {
+                    "id": "N",
+                    "type": "button",
+                    "note": 49,
+                    "hasLed": True,
+                    "ledNotes": {"red": 49, "amber": 85, "green": 121},
+                },
+                {
+                    "id": "O",
+                    "type": "button",
+                    "note": 50,
+                    "hasLed": True,
+                    "ledNotes": {"red": 50, "amber": 86, "green": 122},
+                },
+                {
+                    "id": "P",
+                    "type": "button",
+                    "note": 51,
+                    "hasLed": True,
+                    "ledNotes": {"red": 51, "amber": 87, "green": 123},
+                },
             ],
         },
         # Row 8: Faders (4x)
@@ -127,10 +251,36 @@ K2_LAYOUT = {
         {
             "type": "control-row",
             "controls": [
-                {"id": "LAYER", "type": "button", "note": 15, "hasLed": True, "special": "layer"},
-                {"id": "E5", "type": "encoder", "hasLed": True, "hasPush": True, "cc": 20, "pushNote": 52},
-                {"id": "E6", "type": "encoder", "hasLed": True, "hasPush": True, "cc": 21, "pushNote": 53},
-                {"id": "EXIT", "type": "button", "note": 14, "hasLed": False, "special": "exit"},
+                {
+                    "id": "LAYER",
+                    "type": "button",
+                    "note": 15,
+                    "hasLed": True,
+                    "special": "layer",
+                },
+                {
+                    "id": "E5",
+                    "type": "encoder",
+                    "hasLed": True,
+                    "hasPush": True,
+                    "cc": 20,
+                    "pushNote": 52,
+                },
+                {
+                    "id": "E6",
+                    "type": "encoder",
+                    "hasLed": True,
+                    "hasPush": True,
+                    "cc": 21,
+                    "pushNote": 53,
+                },
+                {
+                    "id": "EXIT",
+                    "type": "button",
+                    "note": 14,
+                    "hasLed": False,
+                    "special": "exit",
+                },
             ],
         },
     ],
@@ -467,9 +617,7 @@ async def trigger_action(body: TriggerActionRequest) -> dict[str, str]:
         await asyncio.to_thread(action.execute, event)
     except Exception as e:
         logger.error("Action '%s' execution error: %s", body.action, e)
-        raise HTTPException(
-            status_code=500, detail=f"Action execution error: {e}"
-        )
+        raise HTTPException(status_code=500, detail=f"Action execution error: {e}")
 
     logger.info("Triggered action: %s", body.action)
     return {"message": f"Action '{body.action}' triggered"}

@@ -6,8 +6,8 @@ Useful for tracking kills, reps, pomodoros, etc.
 
 import json
 import logging
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
 
 logger = logging.getLogger(__name__)
 
@@ -124,9 +124,7 @@ class CounterManager:
         """
         return self._counters.copy()
 
-    def register_callback(
-        self, name: str, callback: Callable[[int], None]
-    ) -> None:
+    def register_callback(self, name: str, callback: Callable[[int], None]) -> None:
         """Register callback for counter changes.
 
         Args:
@@ -137,9 +135,7 @@ class CounterManager:
             self._callbacks[name] = []
         self._callbacks[name].append(callback)
 
-    def unregister_callback(
-        self, name: str, callback: Callable[[int], None]
-    ) -> None:
+    def unregister_callback(self, name: str, callback: Callable[[int], None]) -> None:
         """Unregister a callback.
 
         Args:

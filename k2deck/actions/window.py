@@ -1,7 +1,6 @@
 """Window actions - Focus and launch apps using pywin32."""
 
 import logging
-import time
 from typing import TYPE_CHECKING
 
 import win32con

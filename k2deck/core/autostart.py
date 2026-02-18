@@ -70,8 +70,8 @@ def enable_autostart(
     # Build VBS content using chr(34) for robust quoting
     # WshShell.Run(command, windowStyle, waitOnReturn)
     # windowStyle 0 = hidden window
-    q = 'chr(34)'
-    parts = " & \" \" & ".join(f'{q} & "{a}" & {q}' for a in args)
+    q = "chr(34)"
+    parts = ' & " " & '.join(f'{q} & "{a}" & {q}' for a in args)
     cmd_expr = parts
 
     vbs_lines = [

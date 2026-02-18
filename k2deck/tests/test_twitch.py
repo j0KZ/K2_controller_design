@@ -1,22 +1,24 @@
 """Tests for twitch.py and twitch_client.py - Twitch integration."""
 
-import pytest
-from unittest.mock import MagicMock, patch, AsyncMock
 from dataclasses import dataclass
+from unittest.mock import MagicMock, patch
 
-from k2deck.core.twitch_client import TwitchClient, HAS_TWITCH, get_twitch_client
+import pytest
+
 from k2deck.actions.twitch import (
-    TwitchMarkerAction,
-    TwitchClipAction,
     TwitchChatAction,
-    TwitchTitleAction,
+    TwitchClipAction,
     TwitchGameAction,
+    TwitchMarkerAction,
+    TwitchTitleAction,
 )
+from k2deck.core.twitch_client import HAS_TWITCH, TwitchClient, get_twitch_client
 
 
 @dataclass
 class MidiEvent:
     """Mock MIDI event for testing."""
+
     type: str
     channel: int
     note: int | None
@@ -64,10 +66,10 @@ class TestTwitchClient:
 
     def test_configure_uses_env_vars(self):
         """Should use environment variables if no args provided."""
-        with patch.dict("os.environ", {
-            "TWITCH_CLIENT_ID": "env_id",
-            "TWITCH_CLIENT_SECRET": "env_secret"
-        }):
+        with patch.dict(
+            "os.environ",
+            {"TWITCH_CLIENT_ID": "env_id", "TWITCH_CLIENT_SECRET": "env_secret"},
+        ):
             client = TwitchClient()
             client.configure()
             assert client._client_id == "env_id"
@@ -79,6 +81,7 @@ class TestTwitchClient:
         with patch.dict("os.environ", {}, clear=True):
             # Remove any existing env vars
             import os
+
             os.environ.pop("TWITCH_CLIENT_ID", None)
             os.environ.pop("TWITCH_CLIENT_SECRET", None)
 
@@ -99,6 +102,7 @@ class TestTwitchClient:
     def test_rate_limit_allows_after_interval(self):
         """Should allow action after interval."""
         import time
+
         client = TwitchClient()
         client._last_action_time = time.time() - 2.0  # 2 seconds ago
         assert client._rate_limit() is True
@@ -114,7 +118,9 @@ class TestTwitchMarkerAction:
     def test_only_triggers_on_note_on(self):
         """Should only execute on note_on events."""
         action = TwitchMarkerAction({"description": "test"})
-        event = MidiEvent(type="cc", channel=16, note=None, cc=1, value=64, timestamp=0.0)
+        event = MidiEvent(
+            type="cc", channel=16, note=None, cc=1, value=64, timestamp=0.0
+        )
 
         with patch("k2deck.core.twitch_client.get_twitch_client") as mock_get:
             action.execute(event)
@@ -123,7 +129,9 @@ class TestTwitchMarkerAction:
     def test_ignores_zero_velocity(self):
         """Should ignore note_on with velocity 0."""
         action = TwitchMarkerAction({"description": "test"})
-        event = MidiEvent(type="note_on", channel=16, note=36, cc=None, value=0, timestamp=0.0)
+        event = MidiEvent(
+            type="note_on", channel=16, note=36, cc=None, value=0, timestamp=0.0
+        )
 
         with patch("k2deck.core.twitch_client.get_twitch_client") as mock_get:
             action.execute(event)
@@ -132,38 +140,50 @@ class TestTwitchMarkerAction:
     def test_calls_create_marker(self):
         """Should call create_marker on connected client."""
         action = TwitchMarkerAction({"description": "highlight"})
-        event = MidiEvent(type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0)
+        event = MidiEvent(
+            type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0
+        )
 
         mock_client = MagicMock()
         mock_client.is_available = True
         mock_client.is_connected = True
 
-        with patch("k2deck.core.twitch_client.get_twitch_client", return_value=mock_client):
+        with patch(
+            "k2deck.core.twitch_client.get_twitch_client", return_value=mock_client
+        ):
             action.execute(event)
             mock_client.create_marker.assert_called_once_with("highlight")
 
     def test_skips_if_not_available(self):
         """Should skip if twitchAPI not installed."""
         action = TwitchMarkerAction({"description": "test"})
-        event = MidiEvent(type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0)
+        event = MidiEvent(
+            type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0
+        )
 
         mock_client = MagicMock()
         mock_client.is_available = False
 
-        with patch("k2deck.core.twitch_client.get_twitch_client", return_value=mock_client):
+        with patch(
+            "k2deck.core.twitch_client.get_twitch_client", return_value=mock_client
+        ):
             action.execute(event)
             mock_client.create_marker.assert_not_called()
 
     def test_skips_if_not_connected(self):
         """Should skip if not connected to Twitch."""
         action = TwitchMarkerAction({"description": "test"})
-        event = MidiEvent(type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0)
+        event = MidiEvent(
+            type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0
+        )
 
         mock_client = MagicMock()
         mock_client.is_available = True
         mock_client.is_connected = False
 
-        with patch("k2deck.core.twitch_client.get_twitch_client", return_value=mock_client):
+        with patch(
+            "k2deck.core.twitch_client.get_twitch_client", return_value=mock_client
+        ):
             action.execute(event)
             mock_client.create_marker.assert_not_called()
 
@@ -178,7 +198,9 @@ class TestTwitchClipAction:
     def test_only_triggers_on_note_on(self):
         """Should only execute on note_on events."""
         action = TwitchClipAction({})
-        event = MidiEvent(type="cc", channel=16, note=None, cc=1, value=64, timestamp=0.0)
+        event = MidiEvent(
+            type="cc", channel=16, note=None, cc=1, value=64, timestamp=0.0
+        )
 
         with patch("k2deck.core.twitch_client.get_twitch_client") as mock_get:
             action.execute(event)
@@ -187,14 +209,18 @@ class TestTwitchClipAction:
     def test_calls_create_clip(self):
         """Should call create_clip on connected client."""
         action = TwitchClipAction({})
-        event = MidiEvent(type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0)
+        event = MidiEvent(
+            type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0
+        )
 
         mock_client = MagicMock()
         mock_client.is_available = True
         mock_client.is_connected = True
         mock_client.create_clip.return_value = "https://clips.twitch.tv/test123"
 
-        with patch("k2deck.core.twitch_client.get_twitch_client", return_value=mock_client):
+        with patch(
+            "k2deck.core.twitch_client.get_twitch_client", return_value=mock_client
+        ):
             action.execute(event)
             mock_client.create_clip.assert_called_once()
 
@@ -209,7 +235,9 @@ class TestTwitchChatAction:
     def test_only_triggers_on_note_on(self):
         """Should only execute on note_on events."""
         action = TwitchChatAction({"message": "hello"})
-        event = MidiEvent(type="cc", channel=16, note=None, cc=1, value=64, timestamp=0.0)
+        event = MidiEvent(
+            type="cc", channel=16, note=None, cc=1, value=64, timestamp=0.0
+        )
 
         with patch("k2deck.core.twitch_client.get_twitch_client") as mock_get:
             action.execute(event)
@@ -218,26 +246,34 @@ class TestTwitchChatAction:
     def test_calls_send_chat(self):
         """Should call send_chat with message."""
         action = TwitchChatAction({"message": "Thanks for watching!"})
-        event = MidiEvent(type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0)
+        event = MidiEvent(
+            type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0
+        )
 
         mock_client = MagicMock()
         mock_client.is_available = True
         mock_client.is_connected = True
 
-        with patch("k2deck.core.twitch_client.get_twitch_client", return_value=mock_client):
+        with patch(
+            "k2deck.core.twitch_client.get_twitch_client", return_value=mock_client
+        ):
             action.execute(event)
             mock_client.send_chat.assert_called_once_with("Thanks for watching!")
 
     def test_warns_if_no_message(self):
         """Should warn if no message configured."""
         action = TwitchChatAction({})
-        event = MidiEvent(type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0)
+        event = MidiEvent(
+            type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0
+        )
 
         mock_client = MagicMock()
         mock_client.is_available = True
         mock_client.is_connected = True
 
-        with patch("k2deck.core.twitch_client.get_twitch_client", return_value=mock_client):
+        with patch(
+            "k2deck.core.twitch_client.get_twitch_client", return_value=mock_client
+        ):
             action.execute(event)
             mock_client.send_chat.assert_not_called()
 
@@ -252,7 +288,9 @@ class TestTwitchTitleAction:
     def test_only_triggers_on_note_on(self):
         """Should only execute on note_on events."""
         action = TwitchTitleAction({"title": "New Title"})
-        event = MidiEvent(type="cc", channel=16, note=None, cc=1, value=64, timestamp=0.0)
+        event = MidiEvent(
+            type="cc", channel=16, note=None, cc=1, value=64, timestamp=0.0
+        )
 
         with patch("k2deck.core.twitch_client.get_twitch_client") as mock_get:
             action.execute(event)
@@ -261,26 +299,34 @@ class TestTwitchTitleAction:
     def test_calls_update_title(self):
         """Should call update_title with title."""
         action = TwitchTitleAction({"title": "Just Chatting!"})
-        event = MidiEvent(type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0)
+        event = MidiEvent(
+            type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0
+        )
 
         mock_client = MagicMock()
         mock_client.is_available = True
         mock_client.is_connected = True
 
-        with patch("k2deck.core.twitch_client.get_twitch_client", return_value=mock_client):
+        with patch(
+            "k2deck.core.twitch_client.get_twitch_client", return_value=mock_client
+        ):
             action.execute(event)
             mock_client.update_title.assert_called_once_with("Just Chatting!")
 
     def test_warns_if_no_title(self):
         """Should warn if no title configured."""
         action = TwitchTitleAction({})
-        event = MidiEvent(type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0)
+        event = MidiEvent(
+            type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0
+        )
 
         mock_client = MagicMock()
         mock_client.is_available = True
         mock_client.is_connected = True
 
-        with patch("k2deck.core.twitch_client.get_twitch_client", return_value=mock_client):
+        with patch(
+            "k2deck.core.twitch_client.get_twitch_client", return_value=mock_client
+        ):
             action.execute(event)
             mock_client.update_title.assert_not_called()
 
@@ -295,7 +341,9 @@ class TestTwitchGameAction:
     def test_only_triggers_on_note_on(self):
         """Should only execute on note_on events."""
         action = TwitchGameAction({"game": "Minecraft"})
-        event = MidiEvent(type="cc", channel=16, note=None, cc=1, value=64, timestamp=0.0)
+        event = MidiEvent(
+            type="cc", channel=16, note=None, cc=1, value=64, timestamp=0.0
+        )
 
         with patch("k2deck.core.twitch_client.get_twitch_client") as mock_get:
             action.execute(event)
@@ -304,25 +352,33 @@ class TestTwitchGameAction:
     def test_calls_update_game(self):
         """Should call update_game with game name."""
         action = TwitchGameAction({"game": "Just Chatting"})
-        event = MidiEvent(type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0)
+        event = MidiEvent(
+            type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0
+        )
 
         mock_client = MagicMock()
         mock_client.is_available = True
         mock_client.is_connected = True
 
-        with patch("k2deck.core.twitch_client.get_twitch_client", return_value=mock_client):
+        with patch(
+            "k2deck.core.twitch_client.get_twitch_client", return_value=mock_client
+        ):
             action.execute(event)
             mock_client.update_game.assert_called_once_with("Just Chatting")
 
     def test_warns_if_no_game(self):
         """Should warn if no game configured."""
         action = TwitchGameAction({})
-        event = MidiEvent(type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0)
+        event = MidiEvent(
+            type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0
+        )
 
         mock_client = MagicMock()
         mock_client.is_available = True
         mock_client.is_connected = True
 
-        with patch("k2deck.core.twitch_client.get_twitch_client", return_value=mock_client):
+        with patch(
+            "k2deck.core.twitch_client.get_twitch_client", return_value=mock_client
+        ):
             action.execute(event)
             mock_client.update_game.assert_not_called()

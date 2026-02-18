@@ -24,6 +24,7 @@ def _load_credentials_from_keyring() -> tuple[str | None, str | None]:
     """
     try:
         from k2deck.core.secure_storage import get_spotify_credentials
+
         return get_spotify_credentials()
     except ImportError:
         return None, None
@@ -40,15 +41,16 @@ def _load_credentials_from_env() -> tuple[str | None, str | None]:
         os.environ.get("SPOTIPY_CLIENT_SECRET"),
     )
 
+
 # Required scopes for K2 Deck functionality
 SPOTIFY_SCOPES = [
-    "user-read-playback-state",      # Get current playback
-    "user-modify-playback-state",    # Play, pause, seek, volume, etc.
-    "user-read-currently-playing",   # Get current track
-    "user-library-read",             # Check if track is liked
-    "user-library-modify",           # Like/unlike tracks
-    "playlist-read-private",         # Read playlists
-    "playlist-read-collaborative",   # Read collaborative playlists
+    "user-read-playback-state",  # Get current playback
+    "user-modify-playback-state",  # Play, pause, seek, volume, etc.
+    "user-read-currently-playing",  # Get current track
+    "user-library-read",  # Check if track is liked
+    "user-library-modify",  # Like/unlike tracks
+    "playlist-read-private",  # Read playlists
+    "playlist-read-collaborative",  # Read collaborative playlists
 ]
 
 

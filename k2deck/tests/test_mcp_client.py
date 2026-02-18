@@ -1,9 +1,9 @@
 """Tests for k2deck.mcp.client — K2 Deck API HTTP client."""
 
-import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
+import pytest
 
 from k2deck.mcp import client as client_module
 from k2deck.mcp.client import K2DeckClient, get_client

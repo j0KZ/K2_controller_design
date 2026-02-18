@@ -1,8 +1,7 @@
 """Tests for tts.py - Text-to-Speech action."""
 
-import pytest
-from unittest.mock import patch, MagicMock
 from dataclasses import dataclass
+from unittest.mock import MagicMock, patch
 
 from k2deck.actions.tts import TTSAction
 
@@ -10,6 +9,7 @@ from k2deck.actions.tts import TTSAction
 @dataclass
 class MidiEvent:
     """Mock MIDI event for testing."""
+
     type: str
     channel: int
     note: int | None
@@ -25,9 +25,11 @@ class TestTTSAction:
         """Should only execute on note_on events."""
         action = TTSAction({"text": "Hello"})
 
-        with patch('k2deck.actions.tts.HAS_TTS', True):
-            with patch.object(TTSAction, '_get_engine') as mock_engine:
-                event = MidiEvent(type="cc", channel=16, note=None, cc=1, value=64, timestamp=0.0)
+        with patch("k2deck.actions.tts.HAS_TTS", True):
+            with patch.object(TTSAction, "_get_engine") as mock_engine:
+                event = MidiEvent(
+                    type="cc", channel=16, note=None, cc=1, value=64, timestamp=0.0
+                )
                 action.execute(event)
                 assert not mock_engine.called
 
@@ -35,40 +37,48 @@ class TestTTSAction:
         """Should ignore note_on with velocity 0."""
         action = TTSAction({"text": "Hello"})
 
-        with patch('k2deck.actions.tts.HAS_TTS', True):
-            with patch.object(TTSAction, '_get_engine') as mock_engine:
-                event = MidiEvent(type="note_on", channel=16, note=36, cc=None, value=0, timestamp=0.0)
+        with patch("k2deck.actions.tts.HAS_TTS", True):
+            with patch.object(TTSAction, "_get_engine") as mock_engine:
+                event = MidiEvent(
+                    type="note_on", channel=16, note=36, cc=None, value=0, timestamp=0.0
+                )
                 action.execute(event)
                 assert not mock_engine.called
 
     def test_warns_if_no_text_configured(self):
         """Should warn if no text configured."""
         action = TTSAction({})
-        event = MidiEvent(type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0)
+        event = MidiEvent(
+            type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0
+        )
 
-        with patch('k2deck.actions.tts.HAS_TTS', True):
-            with patch.object(TTSAction, '_get_engine') as mock_engine:
+        with patch("k2deck.actions.tts.HAS_TTS", True):
+            with patch.object(TTSAction, "_get_engine") as mock_engine:
                 action.execute(event)
                 assert not mock_engine.called
 
-    @patch('k2deck.actions.tts.HAS_TTS', False)
+    @patch("k2deck.actions.tts.HAS_TTS", False)
     def test_warns_if_pyttsx3_not_installed(self):
         """Should warn if pyttsx3 not installed."""
         action = TTSAction({"text": "Hello"})
-        event = MidiEvent(type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0)
+        event = MidiEvent(
+            type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0
+        )
 
-        with patch.object(TTSAction, '_get_engine') as mock_engine:
+        with patch.object(TTSAction, "_get_engine") as mock_engine:
             action.execute(event)
             assert not mock_engine.called
 
-    @patch('k2deck.actions.tts.HAS_TTS', True)
+    @patch("k2deck.actions.tts.HAS_TTS", True)
     def test_speaks_text(self):
         """Should speak configured text."""
         mock_engine = MagicMock()
         TTSAction._engine = mock_engine
 
         action = TTSAction({"text": "Hello world", "rate": 200, "volume": 0.5})
-        event = MidiEvent(type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0)
+        event = MidiEvent(
+            type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0
+        )
 
         action.execute(event)
 
@@ -80,14 +90,16 @@ class TestTTSAction:
         # Clean up
         TTSAction._engine = None
 
-    @patch('k2deck.actions.tts.HAS_TTS', True)
+    @patch("k2deck.actions.tts.HAS_TTS", True)
     def test_default_rate_and_volume(self):
         """Should use default rate and volume."""
         mock_engine = MagicMock()
         TTSAction._engine = mock_engine
 
         action = TTSAction({"text": "Test"})
-        event = MidiEvent(type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0)
+        event = MidiEvent(
+            type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0
+        )
 
         action.execute(event)
 
@@ -97,7 +109,7 @@ class TestTTSAction:
         # Clean up
         TTSAction._engine = None
 
-    @patch('k2deck.actions.tts.HAS_TTS', True)
+    @patch("k2deck.actions.tts.HAS_TTS", True)
     def test_handles_engine_error(self):
         """Should handle TTS engine errors gracefully."""
         mock_engine = MagicMock()
@@ -105,7 +117,9 @@ class TestTTSAction:
         TTSAction._engine = mock_engine
 
         action = TTSAction({"text": "Test"})
-        event = MidiEvent(type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0)
+        event = MidiEvent(
+            type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0
+        )
 
         # Should not raise
         action.execute(event)

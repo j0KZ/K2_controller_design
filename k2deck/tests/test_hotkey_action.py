@@ -1,8 +1,6 @@
 """Tests for hotkey action."""
 
-from unittest.mock import MagicMock, patch
-
-import pytest
+from unittest.mock import patch
 
 from k2deck.actions.hotkey import (
     HotkeyAction,
@@ -71,9 +69,10 @@ class TestHotkeyAction:
         config = {"name": "Test", "action": "hotkey", "keys": ["v"], "mode": "hold"}
         action = HotkeyAction(config)
 
-        with patch("k2deck.core.keyboard.press_key") as mock_press, \
-             patch("k2deck.core.keyboard.release_key") as mock_release:
-
+        with (
+            patch("k2deck.core.keyboard.press_key") as mock_press,
+            patch("k2deck.core.keyboard.release_key") as mock_release,
+        ):
             # Button press
             press_event = MidiEvent(
                 type="note_on",

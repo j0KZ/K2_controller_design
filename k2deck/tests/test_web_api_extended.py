@@ -4,9 +4,8 @@ Covers: config export/import, LED endpoints, folder endpoint,
 MIDI reconnect, integration connect/disconnect, WebSocket messages.
 """
 
-import json
 import io
-from pathlib import Path
+import json
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -315,13 +314,16 @@ class TestWebSocketMessages:
                 websocket.receive_json()
 
                 # Send set_led command
-                websocket.send_json({
-                    "type": "set_led",
-                    "data": {"note": 36, "color": "green"},
-                })
+                websocket.send_json(
+                    {
+                        "type": "set_led",
+                        "data": {"note": 36, "color": "green"},
+                    }
+                )
 
                 # Give time for message processing
                 import time
+
                 time.sleep(0.1)
 
             mock_mgr.set_led.assert_called_with(36, "green")
@@ -335,12 +337,15 @@ class TestWebSocketMessages:
             with self.client.websocket_connect("/ws/events") as websocket:
                 websocket.receive_json()
 
-                websocket.send_json({
-                    "type": "set_led",
-                    "data": {"note": 36, "color": None},
-                })
+                websocket.send_json(
+                    {
+                        "type": "set_led",
+                        "data": {"note": 36, "color": None},
+                    }
+                )
 
                 import time
+
                 time.sleep(0.1)
 
             mock_mgr.set_led_off.assert_called_with(36)

@@ -107,7 +107,9 @@ class OBSClientManager:
             True if connected successfully, False otherwise.
         """
         if not HAS_OBSWS:
-            self._last_error = "obsws-python not installed. Run: pip install obsws-python"
+            self._last_error = (
+                "obsws-python not installed. Run: pip install obsws-python"
+            )
             logger.warning(self._last_error)
             return False
 
@@ -137,7 +139,9 @@ class OBSClientManager:
                 return True
 
             except OBSSDKTimeoutError:
-                self._last_error = f"Connection timeout to OBS at {self._host}:{self._port}"
+                self._last_error = (
+                    f"Connection timeout to OBS at {self._host}:{self._port}"
+                )
                 logger.warning(self._last_error)
             except OBSSDKError as e:
                 self._last_error = f"OBS connection failed: {e}"

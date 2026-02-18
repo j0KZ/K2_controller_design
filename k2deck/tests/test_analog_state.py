@@ -3,9 +3,7 @@
 import json
 import tempfile
 from pathlib import Path
-from unittest.mock import MagicMock, patch
-
-import pytest
+from unittest.mock import MagicMock
 
 from k2deck.core.analog_state import AnalogStateManager, get_analog_state_manager
 
@@ -23,7 +21,8 @@ class TestAnalogStateManager:
     def teardown_method(self):
         """Clean up temp files."""
         import shutil
-        if hasattr(self, 'tmp_dir') and Path(self.tmp_dir).exists():
+
+        if hasattr(self, "tmp_dir") and Path(self.tmp_dir).exists():
             shutil.rmtree(self.tmp_dir, ignore_errors=True)
         AnalogStateManager._instance = None
 
@@ -266,7 +265,8 @@ class TestAnalogStateIntegration:
     def teardown_method(self):
         """Clean up temp files."""
         import shutil
-        if hasattr(self, 'tmp_dir') and Path(self.tmp_dir).exists():
+
+        if hasattr(self, "tmp_dir") and Path(self.tmp_dir).exists():
             shutil.rmtree(self.tmp_dir, ignore_errors=True)
         AnalogStateManager._instance = None
 

@@ -5,7 +5,6 @@ MP3/OGG support requires pygame (optional).
 """
 
 import logging
-import threading
 import winsound
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -21,6 +20,7 @@ logger = logging.getLogger(__name__)
 _pygame_available = False
 try:
     import pygame.mixer
+
     pygame.mixer.init()
     _pygame_available = True
     logger.debug("pygame.mixer available for MP3/OGG playback")
@@ -160,7 +160,9 @@ class SoundPlayAction(Action):
             return
 
         if success:
-            logger.debug("Playing sound: %s (volume: %d%%)", path.name, int(self._volume * 100))
+            logger.debug(
+                "Playing sound: %s (volume: %d%%)", path.name, int(self._volume * 100)
+            )
 
 
 class SoundStopAction(Action):

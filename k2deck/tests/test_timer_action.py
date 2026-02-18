@@ -10,12 +10,21 @@ from k2deck.core.timer_manager import TimerManager, get_timer_manager
 
 def _note_on(velocity=127):
     """Create a note_on MidiEvent."""
-    return MidiEvent(type="note_on", channel=1, note=48, cc=None, value=velocity, timestamp=time.time())
+    return MidiEvent(
+        type="note_on",
+        channel=1,
+        note=48,
+        cc=None,
+        value=velocity,
+        timestamp=time.time(),
+    )
 
 
 def _cc_event():
     """Create a CC MidiEvent."""
-    return MidiEvent(type="cc", channel=1, note=None, cc=16, value=64, timestamp=time.time())
+    return MidiEvent(
+        type="cc", channel=1, note=None, cc=16, value=64, timestamp=time.time()
+    )
 
 
 class TestTimerStartAction:
@@ -70,16 +79,19 @@ class TestTimerStartAction:
         """on_complete config creates and executes an action."""
         mock_action = MagicMock()
 
-        with patch("k2deck.core.action_factory.create_action", return_value=mock_action):
-            action = TimerStartAction({
-                "name": "test",
-                "seconds": 1,
-                "on_complete": {"action": "noop"},
-            })
+        with patch(
+            "k2deck.core.action_factory.create_action", return_value=mock_action
+        ):
+            action = TimerStartAction(
+                {
+                    "name": "test",
+                    "seconds": 1,
+                    "on_complete": {"action": "noop"},
+                }
+            )
             action.execute(_note_on())
 
             # Wait for timer to complete
-            import threading
             deadline = time.time() + 5
             while time.time() < deadline:
                 if mock_action.execute.called:

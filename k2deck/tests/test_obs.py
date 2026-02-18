@@ -1,22 +1,22 @@
 """Tests for OBS WebSocket integration (obs_client.py and obs.py)."""
 
-import pytest
-from unittest.mock import patch, MagicMock, PropertyMock
 from dataclasses import dataclass
+from unittest.mock import MagicMock, patch
 
-from k2deck.core.obs_client import OBSClientManager, get_obs_client
 from k2deck.actions.obs import (
+    OBSMuteAction,
+    OBSRecordAction,
     OBSSceneAction,
     OBSSourceToggleAction,
     OBSStreamAction,
-    OBSRecordAction,
-    OBSMuteAction,
 )
+from k2deck.core.obs_client import OBSClientManager, get_obs_client
 
 
 @dataclass
 class MidiEvent:
     """Mock MIDI event for testing."""
+
     type: str
     channel: int
     note: int | None
@@ -57,7 +57,7 @@ class TestOBSClientManager:
     def test_is_available_without_library(self):
         """Should report unavailable when obsws-python not installed."""
         client = OBSClientManager()
-        with patch('k2deck.core.obs_client.HAS_OBSWS', False):
+        with patch("k2deck.core.obs_client.HAS_OBSWS", False):
             # Need to get a fresh client since HAS_OBSWS is checked at import
             pass
         # The actual test depends on whether obsws-python is installed
@@ -81,8 +81,8 @@ class TestOBSClientManagerWithMock:
         """Reset singleton for each test."""
         OBSClientManager._instance = None
 
-    @patch('k2deck.core.obs_client.HAS_OBSWS', True)
-    @patch('k2deck.core.obs_client.obs')
+    @patch("k2deck.core.obs_client.HAS_OBSWS", True)
+    @patch("k2deck.core.obs_client.obs")
     def test_connect_success(self, mock_obs):
         """Should connect successfully."""
         mock_client = MagicMock()
@@ -98,7 +98,7 @@ class TestOBSClientManagerWithMock:
         assert result is True
         assert client.is_connected is True
 
-    @patch('k2deck.core.obs_client.HAS_OBSWS', False)
+    @patch("k2deck.core.obs_client.HAS_OBSWS", False)
     def test_connect_without_library(self):
         """Should fail gracefully without library."""
         client = OBSClientManager()
@@ -107,9 +107,9 @@ class TestOBSClientManagerWithMock:
         assert result is False
         assert "not installed" in client.last_error
 
-    @patch('k2deck.core.obs_client.HAS_OBSWS', True)
-    @patch('k2deck.core.obs_client.obs')
-    @patch('k2deck.core.obs_client.OBSSDKTimeoutError', Exception)
+    @patch("k2deck.core.obs_client.HAS_OBSWS", True)
+    @patch("k2deck.core.obs_client.obs")
+    @patch("k2deck.core.obs_client.OBSSDKTimeoutError", Exception)
     def test_connect_timeout(self, mock_obs):
         """Should handle connection timeout."""
         mock_obs.ReqClient.side_effect = Exception("timeout")
@@ -120,8 +120,8 @@ class TestOBSClientManagerWithMock:
         assert result is False
         assert client.is_connected is False
 
-    @patch('k2deck.core.obs_client.HAS_OBSWS', True)
-    @patch('k2deck.core.obs_client.obs')
+    @patch("k2deck.core.obs_client.HAS_OBSWS", True)
+    @patch("k2deck.core.obs_client.obs")
     def test_set_scene_success(self, mock_obs):
         """Should switch scene successfully."""
         mock_client = MagicMock()
@@ -138,8 +138,8 @@ class TestOBSClientManagerWithMock:
         assert result is True
         mock_client.set_current_program_scene.assert_called_once_with("Gaming")
 
-    @patch('k2deck.core.obs_client.HAS_OBSWS', True)
-    @patch('k2deck.core.obs_client.obs')
+    @patch("k2deck.core.obs_client.HAS_OBSWS", True)
+    @patch("k2deck.core.obs_client.obs")
     def test_toggle_stream_toggle(self, mock_obs):
         """Should toggle stream."""
         mock_client = MagicMock()
@@ -159,8 +159,8 @@ class TestOBSClientManagerWithMock:
         assert result is True
         mock_client.toggle_stream.assert_called_once()
 
-    @patch('k2deck.core.obs_client.HAS_OBSWS', True)
-    @patch('k2deck.core.obs_client.obs')
+    @patch("k2deck.core.obs_client.HAS_OBSWS", True)
+    @patch("k2deck.core.obs_client.obs")
     def test_toggle_stream_start(self, mock_obs):
         """Should start stream."""
         mock_client = MagicMock()
@@ -177,8 +177,8 @@ class TestOBSClientManagerWithMock:
         assert result is True
         mock_client.start_stream.assert_called_once()
 
-    @patch('k2deck.core.obs_client.HAS_OBSWS', True)
-    @patch('k2deck.core.obs_client.obs')
+    @patch("k2deck.core.obs_client.HAS_OBSWS", True)
+    @patch("k2deck.core.obs_client.obs")
     def test_toggle_stream_stop(self, mock_obs):
         """Should stop stream."""
         mock_client = MagicMock()
@@ -195,8 +195,8 @@ class TestOBSClientManagerWithMock:
         assert result is True
         mock_client.stop_stream.assert_called_once()
 
-    @patch('k2deck.core.obs_client.HAS_OBSWS', True)
-    @patch('k2deck.core.obs_client.obs')
+    @patch("k2deck.core.obs_client.HAS_OBSWS", True)
+    @patch("k2deck.core.obs_client.obs")
     def test_toggle_record_toggle(self, mock_obs):
         """Should toggle recording."""
         mock_client = MagicMock()
@@ -216,8 +216,8 @@ class TestOBSClientManagerWithMock:
         assert result is True
         mock_client.toggle_record.assert_called_once()
 
-    @patch('k2deck.core.obs_client.HAS_OBSWS', True)
-    @patch('k2deck.core.obs_client.obs')
+    @patch("k2deck.core.obs_client.HAS_OBSWS", True)
+    @patch("k2deck.core.obs_client.obs")
     def test_toggle_record_pause(self, mock_obs):
         """Should toggle record pause."""
         mock_client = MagicMock()
@@ -234,8 +234,8 @@ class TestOBSClientManagerWithMock:
         assert result is True
         mock_client.toggle_record_pause.assert_called_once()
 
-    @patch('k2deck.core.obs_client.HAS_OBSWS', True)
-    @patch('k2deck.core.obs_client.obs')
+    @patch("k2deck.core.obs_client.HAS_OBSWS", True)
+    @patch("k2deck.core.obs_client.obs")
     def test_toggle_mute_toggle(self, mock_obs):
         """Should toggle mute."""
         mock_client = MagicMock()
@@ -255,8 +255,8 @@ class TestOBSClientManagerWithMock:
         assert result is True
         mock_client.toggle_input_mute.assert_called_once_with("Mic/Aux")
 
-    @patch('k2deck.core.obs_client.HAS_OBSWS', True)
-    @patch('k2deck.core.obs_client.obs')
+    @patch("k2deck.core.obs_client.HAS_OBSWS", True)
+    @patch("k2deck.core.obs_client.obs")
     def test_toggle_mute_set_muted(self, mock_obs):
         """Should set muted state."""
         mock_client = MagicMock()
@@ -273,8 +273,8 @@ class TestOBSClientManagerWithMock:
         assert result is True
         mock_client.set_input_mute.assert_called_once_with("Mic/Aux", True)
 
-    @patch('k2deck.core.obs_client.HAS_OBSWS', True)
-    @patch('k2deck.core.obs_client.obs')
+    @patch("k2deck.core.obs_client.HAS_OBSWS", True)
+    @patch("k2deck.core.obs_client.obs")
     def test_toggle_source_visibility(self, mock_obs):
         """Should toggle source visibility."""
         mock_client = MagicMock()
@@ -305,8 +305,8 @@ class TestOBSClientManagerWithMock:
         assert result is True
         mock_client.set_scene_item_enabled.assert_called_once_with("Main", 1, False)
 
-    @patch('k2deck.core.obs_client.HAS_OBSWS', True)
-    @patch('k2deck.core.obs_client.obs')
+    @patch("k2deck.core.obs_client.HAS_OBSWS", True)
+    @patch("k2deck.core.obs_client.obs")
     def test_get_scenes(self, mock_obs):
         """Should get list of scenes."""
         mock_client = MagicMock()
@@ -342,8 +342,10 @@ class TestOBSSceneAction:
         """Should only execute on note_on events."""
         action = OBSSceneAction({"scene": "Gaming"})
 
-        with patch('k2deck.actions.obs.get_obs_client') as mock_get:
-            event = MidiEvent(type="cc", channel=16, note=None, cc=1, value=64, timestamp=0.0)
+        with patch("k2deck.actions.obs.get_obs_client") as mock_get:
+            event = MidiEvent(
+                type="cc", channel=16, note=None, cc=1, value=64, timestamp=0.0
+            )
             action.execute(event)
             assert not mock_get.called
 
@@ -351,21 +353,25 @@ class TestOBSSceneAction:
         """Should ignore note_on with velocity 0."""
         action = OBSSceneAction({"scene": "Gaming"})
 
-        with patch('k2deck.actions.obs.get_obs_client') as mock_get:
-            event = MidiEvent(type="note_on", channel=16, note=36, cc=None, value=0, timestamp=0.0)
+        with patch("k2deck.actions.obs.get_obs_client") as mock_get:
+            event = MidiEvent(
+                type="note_on", channel=16, note=36, cc=None, value=0, timestamp=0.0
+            )
             action.execute(event)
             assert not mock_get.called
 
     def test_warns_if_no_scene_configured(self):
         """Should warn if no scene configured."""
         action = OBSSceneAction({})
-        event = MidiEvent(type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0)
+        event = MidiEvent(
+            type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0
+        )
 
-        with patch('k2deck.actions.obs.get_obs_client') as mock_get:
+        with patch("k2deck.actions.obs.get_obs_client") as mock_get:
             action.execute(event)
             assert not mock_get.called
 
-    @patch('k2deck.actions.obs.get_obs_client')
+    @patch("k2deck.actions.obs.get_obs_client")
     def test_switches_scene(self, mock_get):
         """Should switch to configured scene."""
         mock_client = MagicMock()
@@ -373,7 +379,9 @@ class TestOBSSceneAction:
         mock_get.return_value = mock_client
 
         action = OBSSceneAction({"scene": "Gaming"})
-        event = MidiEvent(type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0)
+        event = MidiEvent(
+            type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0
+        )
 
         action.execute(event)
 
@@ -391,30 +399,36 @@ class TestOBSSourceToggleAction:
         """Should only execute on note_on events."""
         action = OBSSourceToggleAction({"scene": "Main", "source": "Webcam"})
 
-        with patch('k2deck.actions.obs.get_obs_client') as mock_get:
-            event = MidiEvent(type="cc", channel=16, note=None, cc=1, value=64, timestamp=0.0)
+        with patch("k2deck.actions.obs.get_obs_client") as mock_get:
+            event = MidiEvent(
+                type="cc", channel=16, note=None, cc=1, value=64, timestamp=0.0
+            )
             action.execute(event)
             assert not mock_get.called
 
     def test_warns_if_no_scene_configured(self):
         """Should warn if no scene configured."""
         action = OBSSourceToggleAction({"source": "Webcam"})
-        event = MidiEvent(type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0)
+        event = MidiEvent(
+            type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0
+        )
 
-        with patch('k2deck.actions.obs.get_obs_client') as mock_get:
+        with patch("k2deck.actions.obs.get_obs_client") as mock_get:
             action.execute(event)
             assert not mock_get.called
 
     def test_warns_if_no_source_configured(self):
         """Should warn if no source configured."""
         action = OBSSourceToggleAction({"scene": "Main"})
-        event = MidiEvent(type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0)
+        event = MidiEvent(
+            type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0
+        )
 
-        with patch('k2deck.actions.obs.get_obs_client') as mock_get:
+        with patch("k2deck.actions.obs.get_obs_client") as mock_get:
             action.execute(event)
             assert not mock_get.called
 
-    @patch('k2deck.actions.obs.get_obs_client')
+    @patch("k2deck.actions.obs.get_obs_client")
     def test_toggles_source(self, mock_get):
         """Should toggle source visibility."""
         mock_client = MagicMock()
@@ -422,25 +436,35 @@ class TestOBSSourceToggleAction:
         mock_get.return_value = mock_client
 
         action = OBSSourceToggleAction({"scene": "Main", "source": "Webcam"})
-        event = MidiEvent(type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0)
+        event = MidiEvent(
+            type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0
+        )
 
         action.execute(event)
 
-        mock_client.toggle_source_visibility.assert_called_once_with("Main", "Webcam", None)
+        mock_client.toggle_source_visibility.assert_called_once_with(
+            "Main", "Webcam", None
+        )
 
-    @patch('k2deck.actions.obs.get_obs_client')
+    @patch("k2deck.actions.obs.get_obs_client")
     def test_sets_visibility(self, mock_get):
         """Should set specific visibility."""
         mock_client = MagicMock()
         mock_client.is_available = True
         mock_get.return_value = mock_client
 
-        action = OBSSourceToggleAction({"scene": "Main", "source": "Webcam", "visible": True})
-        event = MidiEvent(type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0)
+        action = OBSSourceToggleAction(
+            {"scene": "Main", "source": "Webcam", "visible": True}
+        )
+        event = MidiEvent(
+            type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0
+        )
 
         action.execute(event)
 
-        mock_client.toggle_source_visibility.assert_called_once_with("Main", "Webcam", True)
+        mock_client.toggle_source_visibility.assert_called_once_with(
+            "Main", "Webcam", True
+        )
 
 
 class TestOBSStreamAction:
@@ -454,12 +478,14 @@ class TestOBSStreamAction:
         """Should only execute on note_on events."""
         action = OBSStreamAction({})
 
-        with patch('k2deck.actions.obs.get_obs_client') as mock_get:
-            event = MidiEvent(type="cc", channel=16, note=None, cc=1, value=64, timestamp=0.0)
+        with patch("k2deck.actions.obs.get_obs_client") as mock_get:
+            event = MidiEvent(
+                type="cc", channel=16, note=None, cc=1, value=64, timestamp=0.0
+            )
             action.execute(event)
             assert not mock_get.called
 
-    @patch('k2deck.actions.obs.get_obs_client')
+    @patch("k2deck.actions.obs.get_obs_client")
     def test_default_mode_toggle(self, mock_get):
         """Should default to toggle mode."""
         mock_client = MagicMock()
@@ -467,13 +493,15 @@ class TestOBSStreamAction:
         mock_get.return_value = mock_client
 
         action = OBSStreamAction({})
-        event = MidiEvent(type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0)
+        event = MidiEvent(
+            type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0
+        )
 
         action.execute(event)
 
         mock_client.toggle_stream.assert_called_once_with("toggle")
 
-    @patch('k2deck.actions.obs.get_obs_client')
+    @patch("k2deck.actions.obs.get_obs_client")
     def test_start_mode(self, mock_get):
         """Should use start mode."""
         mock_client = MagicMock()
@@ -481,7 +509,9 @@ class TestOBSStreamAction:
         mock_get.return_value = mock_client
 
         action = OBSStreamAction({"mode": "start"})
-        event = MidiEvent(type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0)
+        event = MidiEvent(
+            type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0
+        )
 
         action.execute(event)
 
@@ -499,12 +529,14 @@ class TestOBSRecordAction:
         """Should only execute on note_on events."""
         action = OBSRecordAction({})
 
-        with patch('k2deck.actions.obs.get_obs_client') as mock_get:
-            event = MidiEvent(type="cc", channel=16, note=None, cc=1, value=64, timestamp=0.0)
+        with patch("k2deck.actions.obs.get_obs_client") as mock_get:
+            event = MidiEvent(
+                type="cc", channel=16, note=None, cc=1, value=64, timestamp=0.0
+            )
             action.execute(event)
             assert not mock_get.called
 
-    @patch('k2deck.actions.obs.get_obs_client')
+    @patch("k2deck.actions.obs.get_obs_client")
     def test_default_mode_toggle(self, mock_get):
         """Should default to toggle mode."""
         mock_client = MagicMock()
@@ -512,13 +544,15 @@ class TestOBSRecordAction:
         mock_get.return_value = mock_client
 
         action = OBSRecordAction({})
-        event = MidiEvent(type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0)
+        event = MidiEvent(
+            type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0
+        )
 
         action.execute(event)
 
         mock_client.toggle_record.assert_called_once_with("toggle")
 
-    @patch('k2deck.actions.obs.get_obs_client')
+    @patch("k2deck.actions.obs.get_obs_client")
     def test_pause_mode(self, mock_get):
         """Should use pause mode."""
         mock_client = MagicMock()
@@ -526,7 +560,9 @@ class TestOBSRecordAction:
         mock_get.return_value = mock_client
 
         action = OBSRecordAction({"mode": "pause"})
-        event = MidiEvent(type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0)
+        event = MidiEvent(
+            type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0
+        )
 
         action.execute(event)
 
@@ -544,21 +580,25 @@ class TestOBSMuteAction:
         """Should only execute on note_on events."""
         action = OBSMuteAction({"input": "Mic/Aux"})
 
-        with patch('k2deck.actions.obs.get_obs_client') as mock_get:
-            event = MidiEvent(type="cc", channel=16, note=None, cc=1, value=64, timestamp=0.0)
+        with patch("k2deck.actions.obs.get_obs_client") as mock_get:
+            event = MidiEvent(
+                type="cc", channel=16, note=None, cc=1, value=64, timestamp=0.0
+            )
             action.execute(event)
             assert not mock_get.called
 
     def test_warns_if_no_input_configured(self):
         """Should warn if no input configured."""
         action = OBSMuteAction({})
-        event = MidiEvent(type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0)
+        event = MidiEvent(
+            type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0
+        )
 
-        with patch('k2deck.actions.obs.get_obs_client') as mock_get:
+        with patch("k2deck.actions.obs.get_obs_client") as mock_get:
             action.execute(event)
             assert not mock_get.called
 
-    @patch('k2deck.actions.obs.get_obs_client')
+    @patch("k2deck.actions.obs.get_obs_client")
     def test_toggles_mute(self, mock_get):
         """Should toggle mute."""
         mock_client = MagicMock()
@@ -566,13 +606,15 @@ class TestOBSMuteAction:
         mock_get.return_value = mock_client
 
         action = OBSMuteAction({"input": "Mic/Aux"})
-        event = MidiEvent(type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0)
+        event = MidiEvent(
+            type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0
+        )
 
         action.execute(event)
 
         mock_client.toggle_mute.assert_called_once_with("Mic/Aux", None)
 
-    @patch('k2deck.actions.obs.get_obs_client')
+    @patch("k2deck.actions.obs.get_obs_client")
     def test_sets_muted(self, mock_get):
         """Should set muted state."""
         mock_client = MagicMock()
@@ -580,7 +622,9 @@ class TestOBSMuteAction:
         mock_get.return_value = mock_client
 
         action = OBSMuteAction({"input": "Mic/Aux", "muted": True})
-        event = MidiEvent(type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0)
+        event = MidiEvent(
+            type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0
+        )
 
         action.execute(event)
 

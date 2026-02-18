@@ -6,6 +6,7 @@ Completion callbacks can trigger any K2 Deck action (sound, TTS, etc.).
 
 import logging
 import time
+from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 from k2deck.actions.base import Action
@@ -17,7 +18,9 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-def _build_completion_callback(on_complete_config: dict | None) -> "(() -> None) | None":
+def _build_completion_callback(
+    on_complete_config: dict | None,
+) -> Callable[[], None] | None:
     """Build a callback that creates and executes an action on timer completion.
 
     Args:

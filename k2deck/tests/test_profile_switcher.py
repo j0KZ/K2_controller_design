@@ -1,11 +1,9 @@
 """Tests for profile_switcher.py - Profile auto-switch based on active app."""
 
-import time
-import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
-from k2deck.core.profile_switcher import ProfileAutoSwitcher
 from k2deck.core.context import AppInfo
+from k2deck.core.profile_switcher import ProfileAutoSwitcher
 
 
 class TestProfileAutoSwitcherConfig:
@@ -31,21 +29,25 @@ class TestProfileAutoSwitcherConfig:
     def test_enabled_with_rules(self):
         """Should be enabled with valid config."""
         switcher = ProfileAutoSwitcher(on_profile_switch=lambda x: None)
-        switcher.configure({
-            "enabled": True,
-            "rules": [{"app": "obs.exe", "profile": "streaming"}],
-            "default_profile": "default"
-        })
+        switcher.configure(
+            {
+                "enabled": True,
+                "rules": [{"app": "obs.exe", "profile": "streaming"}],
+                "default_profile": "default",
+            }
+        )
         assert switcher.enabled is True
 
     def test_custom_check_interval(self):
         """Should accept custom check interval."""
         switcher = ProfileAutoSwitcher(on_profile_switch=lambda x: None)
-        switcher.configure({
-            "enabled": True,
-            "rules": [{"app": "test.exe", "profile": "test"}],
-            "check_interval": 1.5
-        })
+        switcher.configure(
+            {
+                "enabled": True,
+                "rules": [{"app": "test.exe", "profile": "test"}],
+                "check_interval": 1.5,
+            }
+        )
         assert switcher._check_interval == 1.5
 
 
@@ -55,15 +57,21 @@ class TestProfileAutoSwitcherMatching:
     def test_matches_exact_app_name(self):
         """Should match exact app name."""
         switched_to = []
-        switcher = ProfileAutoSwitcher(on_profile_switch=lambda x: switched_to.append(x))
-        switcher.configure({
-            "enabled": True,
-            "rules": [{"app": "obs64.exe", "profile": "streaming"}],
-            "default_profile": "default"
-        })
+        switcher = ProfileAutoSwitcher(
+            on_profile_switch=lambda x: switched_to.append(x)
+        )
+        switcher.configure(
+            {
+                "enabled": True,
+                "rules": [{"app": "obs64.exe", "profile": "streaming"}],
+                "default_profile": "default",
+            }
+        )
 
-        with patch('k2deck.core.profile_switcher.get_foreground_app') as mock_fg:
-            mock_fg.return_value = AppInfo(name="obs64.exe", title="OBS", pid=1234, hwnd=5678)
+        with patch("k2deck.core.profile_switcher.get_foreground_app") as mock_fg:
+            mock_fg.return_value = AppInfo(
+                name="obs64.exe", title="OBS", pid=1234, hwnd=5678
+            )
             switcher._check_and_switch()
 
         assert switched_to == ["streaming"]
@@ -71,15 +79,21 @@ class TestProfileAutoSwitcherMatching:
     def test_matches_partial_app_name(self):
         """Should match partial app name (case-insensitive)."""
         switched_to = []
-        switcher = ProfileAutoSwitcher(on_profile_switch=lambda x: switched_to.append(x))
-        switcher.configure({
-            "enabled": True,
-            "rules": [{"app": "obs", "profile": "streaming"}],
-            "default_profile": "default"
-        })
+        switcher = ProfileAutoSwitcher(
+            on_profile_switch=lambda x: switched_to.append(x)
+        )
+        switcher.configure(
+            {
+                "enabled": True,
+                "rules": [{"app": "obs", "profile": "streaming"}],
+                "default_profile": "default",
+            }
+        )
 
-        with patch('k2deck.core.profile_switcher.get_foreground_app') as mock_fg:
-            mock_fg.return_value = AppInfo(name="obs64.exe", title="OBS", pid=1234, hwnd=5678)
+        with patch("k2deck.core.profile_switcher.get_foreground_app") as mock_fg:
+            mock_fg.return_value = AppInfo(
+                name="obs64.exe", title="OBS", pid=1234, hwnd=5678
+            )
             switcher._check_and_switch()
 
         assert switched_to == ["streaming"]
@@ -87,15 +101,21 @@ class TestProfileAutoSwitcherMatching:
     def test_case_insensitive_matching(self):
         """Matching should be case insensitive."""
         switched_to = []
-        switcher = ProfileAutoSwitcher(on_profile_switch=lambda x: switched_to.append(x))
-        switcher.configure({
-            "enabled": True,
-            "rules": [{"app": "OBS", "profile": "streaming"}],
-            "default_profile": "default"
-        })
+        switcher = ProfileAutoSwitcher(
+            on_profile_switch=lambda x: switched_to.append(x)
+        )
+        switcher.configure(
+            {
+                "enabled": True,
+                "rules": [{"app": "OBS", "profile": "streaming"}],
+                "default_profile": "default",
+            }
+        )
 
-        with patch('k2deck.core.profile_switcher.get_foreground_app') as mock_fg:
-            mock_fg.return_value = AppInfo(name="obs64.exe", title="OBS", pid=1234, hwnd=5678)
+        with patch("k2deck.core.profile_switcher.get_foreground_app") as mock_fg:
+            mock_fg.return_value = AppInfo(
+                name="obs64.exe", title="OBS", pid=1234, hwnd=5678
+            )
             switcher._check_and_switch()
 
         assert switched_to == ["streaming"]
@@ -103,18 +123,24 @@ class TestProfileAutoSwitcherMatching:
     def test_first_matching_rule_wins(self):
         """Should use first matching rule."""
         switched_to = []
-        switcher = ProfileAutoSwitcher(on_profile_switch=lambda x: switched_to.append(x))
-        switcher.configure({
-            "enabled": True,
-            "rules": [
-                {"app": "obs", "profile": "streaming"},
-                {"app": "obs64", "profile": "advanced_streaming"},
-            ],
-            "default_profile": "default"
-        })
+        switcher = ProfileAutoSwitcher(
+            on_profile_switch=lambda x: switched_to.append(x)
+        )
+        switcher.configure(
+            {
+                "enabled": True,
+                "rules": [
+                    {"app": "obs", "profile": "streaming"},
+                    {"app": "obs64", "profile": "advanced_streaming"},
+                ],
+                "default_profile": "default",
+            }
+        )
 
-        with patch('k2deck.core.profile_switcher.get_foreground_app') as mock_fg:
-            mock_fg.return_value = AppInfo(name="obs64.exe", title="OBS", pid=1234, hwnd=5678)
+        with patch("k2deck.core.profile_switcher.get_foreground_app") as mock_fg:
+            mock_fg.return_value = AppInfo(
+                name="obs64.exe", title="OBS", pid=1234, hwnd=5678
+            )
             switcher._check_and_switch()
 
         # First rule "obs" matches first
@@ -123,15 +149,21 @@ class TestProfileAutoSwitcherMatching:
     def test_falls_back_to_default(self):
         """Should use default profile if no rules match."""
         switched_to = []
-        switcher = ProfileAutoSwitcher(on_profile_switch=lambda x: switched_to.append(x))
-        switcher.configure({
-            "enabled": True,
-            "rules": [{"app": "obs.exe", "profile": "streaming"}],
-            "default_profile": "general"
-        })
+        switcher = ProfileAutoSwitcher(
+            on_profile_switch=lambda x: switched_to.append(x)
+        )
+        switcher.configure(
+            {
+                "enabled": True,
+                "rules": [{"app": "obs.exe", "profile": "streaming"}],
+                "default_profile": "general",
+            }
+        )
 
-        with patch('k2deck.core.profile_switcher.get_foreground_app') as mock_fg:
-            mock_fg.return_value = AppInfo(name="notepad.exe", title="Untitled", pid=1234, hwnd=5678)
+        with patch("k2deck.core.profile_switcher.get_foreground_app") as mock_fg:
+            mock_fg.return_value = AppInfo(
+                name="notepad.exe", title="Untitled", pid=1234, hwnd=5678
+            )
             switcher._check_and_switch()
 
         assert switched_to == ["general"]
@@ -139,15 +171,21 @@ class TestProfileAutoSwitcherMatching:
     def test_no_switch_if_same_profile(self):
         """Should not trigger callback if profile unchanged."""
         switched_to = []
-        switcher = ProfileAutoSwitcher(on_profile_switch=lambda x: switched_to.append(x))
-        switcher.configure({
-            "enabled": True,
-            "rules": [{"app": "obs.exe", "profile": "streaming"}],
-            "default_profile": "default"
-        })
+        switcher = ProfileAutoSwitcher(
+            on_profile_switch=lambda x: switched_to.append(x)
+        )
+        switcher.configure(
+            {
+                "enabled": True,
+                "rules": [{"app": "obs.exe", "profile": "streaming"}],
+                "default_profile": "default",
+            }
+        )
 
-        with patch('k2deck.core.profile_switcher.get_foreground_app') as mock_fg:
-            mock_fg.return_value = AppInfo(name="obs.exe", title="OBS", pid=1234, hwnd=5678)
+        with patch("k2deck.core.profile_switcher.get_foreground_app") as mock_fg:
+            mock_fg.return_value = AppInfo(
+                name="obs.exe", title="OBS", pid=1234, hwnd=5678
+            )
 
             # First call triggers switch
             switcher._check_and_switch()
@@ -160,14 +198,18 @@ class TestProfileAutoSwitcherMatching:
     def test_no_action_if_no_foreground_app(self):
         """Should do nothing if no foreground app detected."""
         switched_to = []
-        switcher = ProfileAutoSwitcher(on_profile_switch=lambda x: switched_to.append(x))
-        switcher.configure({
-            "enabled": True,
-            "rules": [{"app": "obs.exe", "profile": "streaming"}],
-            "default_profile": "default"
-        })
+        switcher = ProfileAutoSwitcher(
+            on_profile_switch=lambda x: switched_to.append(x)
+        )
+        switcher.configure(
+            {
+                "enabled": True,
+                "rules": [{"app": "obs.exe", "profile": "streaming"}],
+                "default_profile": "default",
+            }
+        )
 
-        with patch('k2deck.core.profile_switcher.get_foreground_app') as mock_fg:
+        with patch("k2deck.core.profile_switcher.get_foreground_app") as mock_fg:
             mock_fg.return_value = None
             switcher._check_and_switch()
 
@@ -187,13 +229,15 @@ class TestProfileAutoSwitcherLifecycle:
     def test_start_creates_thread_if_enabled(self):
         """start() should create background thread if enabled."""
         switcher = ProfileAutoSwitcher(on_profile_switch=lambda x: None)
-        switcher.configure({
-            "enabled": True,
-            "rules": [{"app": "test.exe", "profile": "test"}],
-            "check_interval": 0.1
-        })
+        switcher.configure(
+            {
+                "enabled": True,
+                "rules": [{"app": "test.exe", "profile": "test"}],
+                "check_interval": 0.1,
+            }
+        )
 
-        with patch('k2deck.core.profile_switcher.get_foreground_app') as mock_fg:
+        with patch("k2deck.core.profile_switcher.get_foreground_app") as mock_fg:
             mock_fg.return_value = None
             switcher.start()
             assert switcher._running is True
@@ -207,13 +251,15 @@ class TestProfileAutoSwitcherLifecycle:
     def test_stop_joins_thread(self):
         """stop() should wait for thread to finish."""
         switcher = ProfileAutoSwitcher(on_profile_switch=lambda x: None)
-        switcher.configure({
-            "enabled": True,
-            "rules": [{"app": "test.exe", "profile": "test"}],
-            "check_interval": 0.05
-        })
+        switcher.configure(
+            {
+                "enabled": True,
+                "rules": [{"app": "test.exe", "profile": "test"}],
+                "check_interval": 0.05,
+            }
+        )
 
-        with patch('k2deck.core.profile_switcher.get_foreground_app') as mock_fg:
+        with patch("k2deck.core.profile_switcher.get_foreground_app") as mock_fg:
             mock_fg.return_value = None
             switcher.start()
             switcher.stop()
@@ -232,15 +278,21 @@ class TestProfileAutoSwitcherManual:
     def test_force_check_triggers_check(self):
         """force_check() should trigger immediate check."""
         switched_to = []
-        switcher = ProfileAutoSwitcher(on_profile_switch=lambda x: switched_to.append(x))
-        switcher.configure({
-            "enabled": True,
-            "rules": [{"app": "obs.exe", "profile": "streaming"}],
-            "default_profile": "default"
-        })
+        switcher = ProfileAutoSwitcher(
+            on_profile_switch=lambda x: switched_to.append(x)
+        )
+        switcher.configure(
+            {
+                "enabled": True,
+                "rules": [{"app": "obs.exe", "profile": "streaming"}],
+                "default_profile": "default",
+            }
+        )
 
-        with patch('k2deck.core.profile_switcher.get_foreground_app') as mock_fg:
-            mock_fg.return_value = AppInfo(name="obs.exe", title="OBS", pid=1234, hwnd=5678)
+        with patch("k2deck.core.profile_switcher.get_foreground_app") as mock_fg:
+            mock_fg.return_value = AppInfo(
+                name="obs.exe", title="OBS", pid=1234, hwnd=5678
+            )
             switcher.force_check()
 
         assert switched_to == ["streaming"]
@@ -248,11 +300,15 @@ class TestProfileAutoSwitcherManual:
     def test_force_check_does_nothing_if_disabled(self):
         """force_check() should do nothing if disabled."""
         switched_to = []
-        switcher = ProfileAutoSwitcher(on_profile_switch=lambda x: switched_to.append(x))
+        switcher = ProfileAutoSwitcher(
+            on_profile_switch=lambda x: switched_to.append(x)
+        )
         # Not configured/enabled
 
-        with patch('k2deck.core.profile_switcher.get_foreground_app') as mock_fg:
-            mock_fg.return_value = AppInfo(name="obs.exe", title="OBS", pid=1234, hwnd=5678)
+        with patch("k2deck.core.profile_switcher.get_foreground_app") as mock_fg:
+            mock_fg.return_value = AppInfo(
+                name="obs.exe", title="OBS", pid=1234, hwnd=5678
+            )
             switcher.force_check()
 
         assert switched_to == []

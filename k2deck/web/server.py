@@ -6,9 +6,9 @@ Listens only on localhost (127.0.0.1) for security.
 
 import asyncio
 import logging
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import AsyncGenerator
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -18,7 +18,6 @@ from k2deck.core.analog_state import get_analog_state_manager
 from k2deck.web.routes import config, integrations, k2, profiles
 from k2deck.web.websocket.manager import (
     EventType,
-    WebSocketEvent,
     get_connection_manager,
     send_analog_state,
     set_server_loop,
@@ -95,7 +94,9 @@ def create_app() -> FastAPI:
     app.include_router(config.router, prefix="/api/config", tags=["config"])
     app.include_router(profiles.router, prefix="/api/profiles", tags=["profiles"])
     app.include_router(k2.router, prefix="/api/k2", tags=["k2"])
-    app.include_router(integrations.router, prefix="/api/integrations", tags=["integrations"])
+    app.include_router(
+        integrations.router, prefix="/api/integrations", tags=["integrations"]
+    )
 
     # WebSocket endpoint
     @app.websocket("/ws/events")
@@ -138,7 +139,9 @@ def create_app() -> FastAPI:
 
     # Serve static frontend files (if built)
     if FRONTEND_DIR.exists():
-        app.mount("/", StaticFiles(directory=str(FRONTEND_DIR), html=True), name="frontend")
+        app.mount(
+            "/", StaticFiles(directory=str(FRONTEND_DIR), html=True), name="frontend"
+        )
         logger.info("Serving frontend from %s", FRONTEND_DIR)
 
     return app

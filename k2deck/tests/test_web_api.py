@@ -1,9 +1,7 @@
 """Tests for Web UI Backend API endpoints."""
 
 import json
-import tempfile
-from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -128,9 +126,11 @@ class TestProfilesAPI:
         with patch("k2deck.web.routes.config.CONFIG_DIR", self.config_dir):
             with patch("k2deck.web.routes.profiles.CONFIG_DIR", self.config_dir):
                 from k2deck.web.routes.profiles import set_active_profile
+
                 set_active_profile("default")  # Reset active profile
 
                 from k2deck.web.server import create_app
+
                 app = create_app()
                 self.client = TestClient(app)
                 yield
@@ -194,7 +194,10 @@ class TestProfilesAPI:
 
     def test_update_profile(self):
         """Should update profile config."""
-        new_config = {"name": "streaming_updated", "mappings": {"note_on": {}, "cc": {}}}
+        new_config = {
+            "name": "streaming_updated",
+            "mappings": {"note_on": {}, "cc": {}},
+        }
 
         response = self.client.put(
             "/api/profiles/streaming", json={"config": new_config}
@@ -256,6 +259,7 @@ class TestK2API:
         with patch("k2deck.web.routes.config.CONFIG_DIR", self.config_dir):
             with patch("k2deck.web.routes.profiles.CONFIG_DIR", self.config_dir):
                 from k2deck.web.server import create_app
+
                 app = create_app()
                 self.client = TestClient(app)
                 yield
@@ -342,6 +346,7 @@ class TestIntegrationsAPI:
         with patch("k2deck.web.routes.config.CONFIG_DIR", self.config_dir):
             with patch("k2deck.web.routes.profiles.CONFIG_DIR", self.config_dir):
                 from k2deck.web.server import create_app
+
                 app = create_app()
                 self.client = TestClient(app)
                 yield
@@ -401,6 +406,7 @@ class TestWebSocket:
         with patch("k2deck.web.routes.config.CONFIG_DIR", self.config_dir):
             with patch("k2deck.web.routes.profiles.CONFIG_DIR", self.config_dir):
                 from k2deck.web.server import create_app
+
                 app = create_app()
                 self.client = TestClient(app)
                 yield
@@ -416,6 +422,7 @@ class TestWebSocket:
         """Should receive initial analog state on connect."""
         # Pre-populate some analog state
         from k2deck.core.analog_state import get_analog_state_manager
+
         manager = get_analog_state_manager()
         manager.update(16, 64)
 

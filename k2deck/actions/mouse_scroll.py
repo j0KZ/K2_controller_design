@@ -74,7 +74,7 @@ class MouseScrollAction(Action):
                     _mouse.scroll(0, -scroll_amount)  # CW = down
                     logger.debug("Scroll down: %d", scroll_amount)
                 else:
-                    _mouse.scroll(0, scroll_amount)   # CW = up
+                    _mouse.scroll(0, scroll_amount)  # CW = up
                     logger.debug("Scroll up: %d", scroll_amount)
 
             elif 65 <= value <= 127:
@@ -84,7 +84,7 @@ class MouseScrollAction(Action):
                     scroll_amount = step * min(128 - value, 5)
 
                 if invert:
-                    _mouse.scroll(0, scroll_amount)   # CCW = up
+                    _mouse.scroll(0, scroll_amount)  # CCW = up
                     logger.debug("Scroll up: %d", scroll_amount)
                 else:
                     _mouse.scroll(0, -scroll_amount)  # CCW = down

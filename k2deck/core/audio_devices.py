@@ -9,32 +9,33 @@ References:
 """
 
 import logging
-from ctypes import HRESULT, POINTER, c_int
+from ctypes import HRESULT, c_int
 from typing import NamedTuple
 
 import comtypes
 from comtypes import COMMETHOD, GUID, IUnknown
-from pycaw.pycaw import AudioUtilities, IMMDevice, IMMDeviceEnumerator
+from pycaw.pycaw import AudioUtilities, IMMDeviceEnumerator
 
 logger = logging.getLogger(__name__)
 
 
 # ERole enumeration - audio endpoint roles
 class ERole:
-    eConsole = 0         # Games, system sounds, etc.
-    eMultimedia = 1      # Music, movies, etc.
+    eConsole = 0  # Games, system sounds, etc.
+    eMultimedia = 1  # Music, movies, etc.
     eCommunications = 2  # Voice chat, calls
 
 
 # EDataFlow enumeration
 class EDataFlow:
-    eRender = 0   # Output devices (speakers, headphones)
+    eRender = 0  # Output devices (speakers, headphones)
     eCapture = 1  # Input devices (microphones)
     eAll = 2
 
 
 class AudioDevice(NamedTuple):
     """Represents an audio device."""
+
     id: str
     name: str
     is_default: bool
@@ -44,10 +45,13 @@ class AudioDevice(NamedTuple):
 # This is an undocumented Windows COM interface
 class IPolicyConfig(IUnknown):
     """Undocumented COM interface for audio policy configuration."""
+
     _iid_ = GUID("{f8679f50-850a-41cf-9c72-430f290290c8}")
     _methods_ = [
         # We need to define placeholder methods for vtable ordering
-        COMMETHOD([], HRESULT, "GetMixFormat", (['in'], comtypes.c_wchar_p, 'pwstrDeviceId')),
+        COMMETHOD(
+            [], HRESULT, "GetMixFormat", (["in"], comtypes.c_wchar_p, "pwstrDeviceId")
+        ),
         COMMETHOD([], HRESULT, "GetDeviceFormat"),
         COMMETHOD([], HRESULT, "ResetDeviceFormat"),
         COMMETHOD([], HRESULT, "SetDeviceFormat"),
@@ -58,9 +62,13 @@ class IPolicyConfig(IUnknown):
         COMMETHOD([], HRESULT, "GetPropertyValue"),
         COMMETHOD([], HRESULT, "SetPropertyValue"),
         # The method we actually need
-        COMMETHOD([], HRESULT, "SetDefaultEndpoint",
-                  (['in'], comtypes.c_wchar_p, 'pwstrDeviceId'),
-                  (['in'], c_int, 'eRole')),
+        COMMETHOD(
+            [],
+            HRESULT,
+            "SetDefaultEndpoint",
+            (["in"], comtypes.c_wchar_p, "pwstrDeviceId"),
+            (["in"], c_int, "eRole"),
+        ),
         COMMETHOD([], HRESULT, "SetEndpointVisibility"),
     ]
 
@@ -85,7 +93,7 @@ def get_audio_devices(device_type: str = "output") -> list[AudioDevice]:
         device_enumerator = comtypes.CoCreateInstance(
             GUID("{BCDE0395-E52F-467C-8E3D-C4579291692E}"),
             IMMDeviceEnumerator,
-            comtypes.CLSCTX_INPROC_SERVER
+            comtypes.CLSCTX_INPROC_SERVER,
         )
 
         # Determine flow direction
@@ -96,39 +104,39 @@ def get_audio_devices(device_type: str = "output") -> list[AudioDevice]:
         default_id = default_device.GetId() if default_device else None
 
         # Enumerate all devices
-        collection = device_enumerator.EnumAudioEndpoints(flow, 1)  # DEVICE_STATE_ACTIVE = 1
+        collection = device_enumerator.EnumAudioEndpoints(
+            flow, 1
+        )  # DEVICE_STATE_ACTIVE = 1
         count = collection.GetCount()
 
         for i in range(count):
             device = collection.Item(i)
             device_id = device.GetId()
 
-            # Get friendly name from properties
-            props = device.OpenPropertyStore(0)  # STGM_READ = 0
-            # PKEY_Device_FriendlyName = {a45c254e-df1c-4efd-8020-67d146a850e0}, 14
+            # Get friendly name via pycaw
             try:
-                name_key = comtypes.pointer(comtypes.GUID("{a45c254e-df1c-4efd-8020-67d146a850e0}"))
-                # Use pycaw's method to get name instead
                 name = AudioUtilities.GetDeviceNameFromId(device_id) or f"Device {i}"
             except Exception:
                 name = f"Audio Device {i}"
 
-            devices.append(AudioDevice(
-                id=device_id,
-                name=name,
-                is_default=(device_id == default_id)
-            ))
+            devices.append(
+                AudioDevice(
+                    id=device_id, name=name, is_default=(device_id == default_id)
+                )
+            )
 
     except Exception as e:
         logger.error("Failed to enumerate audio devices: %s", e)
         # Fallback to pycaw's simpler method
         try:
             for device in AudioUtilities.GetAllDevices():
-                devices.append(AudioDevice(
-                    id=device.id,
-                    name=device.FriendlyName or "Unknown",
-                    is_default=False
-                ))
+                devices.append(
+                    AudioDevice(
+                        id=device.id,
+                        name=device.FriendlyName or "Unknown",
+                        is_default=False,
+                    )
+                )
         except Exception as e2:
             logger.error("Fallback enumeration also failed: %s", e2)
 
@@ -149,9 +157,7 @@ def set_default_audio_device(device_id: str, role: int | None = None) -> bool:
     try:
         # Create PolicyConfig instance
         policy_config = comtypes.CoCreateInstance(
-            CLSID_CPolicyConfigClient,
-            IPolicyConfig,
-            comtypes.CLSCTX_ALL
+            CLSID_CPolicyConfigClient, IPolicyConfig, comtypes.CLSCTX_ALL
         )
 
         if role is not None:
@@ -192,7 +198,9 @@ def set_default_audio_device_by_name(name: str, device_type: str = "output") -> 
     return False
 
 
-def cycle_audio_devices(device_names: list[str], device_type: str = "output") -> str | None:
+def cycle_audio_devices(
+    device_names: list[str], device_type: str = "output"
+) -> str | None:
     """Cycle through a list of audio devices.
 
     Args:

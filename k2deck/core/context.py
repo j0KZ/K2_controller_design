@@ -143,7 +143,9 @@ class ContextCache:
                     continue
 
             self._running_apps_refresh = time.monotonic()
-            logger.debug("Refreshed running apps cache: %d processes", len(self._running_apps))
+            logger.debug(
+                "Refreshed running apps cache: %d processes", len(self._running_apps)
+            )
 
         except Exception as e:
             logger.error("Failed to refresh running apps: %s", e)

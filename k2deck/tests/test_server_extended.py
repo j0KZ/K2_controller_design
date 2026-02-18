@@ -45,6 +45,7 @@ class TestHandleClientMessage:
             websocket.send_json({"type": "unknown_type", "data": {}})
 
             import time
+
             time.sleep(0.1)
 
         # No crash = success
@@ -56,12 +57,15 @@ class TestHandleClientMessage:
 
             # Send trigger_action — will fail to import action_factory
             # but should not crash the WebSocket
-            websocket.send_json({
-                "type": "trigger_action",
-                "data": {"action": "hotkey", "config": {"keys": ["f1"]}},
-            })
+            websocket.send_json(
+                {
+                    "type": "trigger_action",
+                    "data": {"action": "hotkey", "config": {"keys": ["f1"]}},
+                }
+            )
 
             import time
+
             time.sleep(0.1)
 
         # No crash = success
@@ -73,12 +77,15 @@ class TestHandleClientMessage:
 
             # Send set_led — will try to import get_led_manager
             # which may raise RuntimeError if not initialized
-            websocket.send_json({
-                "type": "set_led",
-                "data": {"note": 36, "color": "green"},
-            })
+            websocket.send_json(
+                {
+                    "type": "set_led",
+                    "data": {"note": 36, "color": "green"},
+                }
+            )
 
             import time
+
             time.sleep(0.1)
 
         # No crash = success
@@ -88,12 +95,15 @@ class TestHandleClientMessage:
         with self.client.websocket_connect("/ws/events") as websocket:
             websocket.receive_json()
 
-            websocket.send_json({
-                "type": "set_led",
-                "data": {},  # no note
-            })
+            websocket.send_json(
+                {
+                    "type": "set_led",
+                    "data": {},  # no note
+                }
+            )
 
             import time
+
             time.sleep(0.1)
 
 
@@ -161,9 +171,14 @@ class TestHandleClientMessageDirect:
         mock_action = MagicMock()
         mock_ws = MagicMock()
 
-        with patch("k2deck.core.action_factory.create_action", return_value=mock_action):
+        with patch(
+            "k2deck.core.action_factory.create_action", return_value=mock_action
+        ):
             handle_client_message(
-                {"type": "trigger_action", "data": {"action": "hotkey", "config": {"keys": ["f1"]}}},
+                {
+                    "type": "trigger_action",
+                    "data": {"action": "hotkey", "config": {"keys": ["f1"]}},
+                },
                 mock_ws,
             )
 
@@ -191,7 +206,9 @@ class TestHandleClientMessageDirect:
         mock_action.execute.side_effect = Exception("action failed")
         mock_ws = MagicMock()
 
-        with patch("k2deck.core.action_factory.create_action", return_value=mock_action):
+        with patch(
+            "k2deck.core.action_factory.create_action", return_value=mock_action
+        ):
             handle_client_message(
                 {"type": "trigger_action", "data": {"action": "hotkey", "config": {}}},
                 mock_ws,
@@ -216,7 +233,9 @@ class TestHandleClientMessageDirect:
         mock_manager = MagicMock()
         mock_ws = MagicMock()
 
-        with patch("k2deck.feedback.led_manager.get_led_manager", return_value=mock_manager):
+        with patch(
+            "k2deck.feedback.led_manager.get_led_manager", return_value=mock_manager
+        ):
             handle_client_message(
                 {"type": "set_led", "data": {"note": 36, "color": "green"}},
                 mock_ws,
@@ -231,7 +250,9 @@ class TestHandleClientMessageDirect:
         mock_manager = MagicMock()
         mock_ws = MagicMock()
 
-        with patch("k2deck.feedback.led_manager.get_led_manager", return_value=mock_manager):
+        with patch(
+            "k2deck.feedback.led_manager.get_led_manager", return_value=mock_manager
+        ):
             handle_client_message(
                 {"type": "set_led", "data": {"note": 36}},
                 mock_ws,
@@ -256,14 +277,17 @@ class TestRunServer:
     def test_run_server_background(self):
         """Should start uvicorn server in background thread."""
         import threading
+
         import uvicorn
 
         mock_server_instance = MagicMock()
         mock_thread_instance = MagicMock()
 
-        with patch.object(uvicorn, "Config") as mock_config:
+        with patch.object(uvicorn, "Config"):
             with patch.object(uvicorn, "Server", return_value=mock_server_instance):
-                with patch.object(threading, "Thread", return_value=mock_thread_instance) as mock_thread:
+                with patch.object(
+                    threading, "Thread", return_value=mock_thread_instance
+                ) as mock_thread:
                     from k2deck.web.server import run_server_background
 
                     run_server_background("127.0.0.1", 8420)

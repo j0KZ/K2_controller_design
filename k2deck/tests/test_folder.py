@@ -1,16 +1,16 @@
 """Tests for folder.py and folders.py - Folder navigation and actions."""
 
-import pytest
-from unittest.mock import MagicMock
 from dataclasses import dataclass
+from unittest.mock import MagicMock
 
-from k2deck.core.folders import FolderManager, get_folder_manager, MAX_DEPTH
 from k2deck.actions.folder import FolderAction, FolderBackAction, FolderRootAction
+from k2deck.core.folders import MAX_DEPTH, FolderManager, get_folder_manager
 
 
 @dataclass
 class MidiEvent:
     """Mock MIDI event for testing."""
+
     type: str
     channel: int
     note: int | None
@@ -90,7 +90,7 @@ class TestFolderManager:
         mgr = FolderManager()
         # Enter up to max depth
         for i in range(MAX_DEPTH):
-            result = mgr.enter_folder(f"level{i+1}")
+            result = mgr.enter_folder(f"level{i + 1}")
             assert result is True
 
         # Trying to exceed max depth should fail
@@ -185,28 +185,36 @@ class TestFolderAction:
     def test_only_triggers_on_note_on(self):
         """Should only execute on note_on events."""
         action = FolderAction({"folder": "test"})
-        event = MidiEvent(type="cc", channel=16, note=None, cc=1, value=64, timestamp=0.0)
+        event = MidiEvent(
+            type="cc", channel=16, note=None, cc=1, value=64, timestamp=0.0
+        )
         action.execute(event)
         assert get_folder_manager().in_folder is False
 
     def test_ignores_zero_velocity(self):
         """Should ignore note_on with velocity 0."""
         action = FolderAction({"folder": "test"})
-        event = MidiEvent(type="note_on", channel=16, note=36, cc=None, value=0, timestamp=0.0)
+        event = MidiEvent(
+            type="note_on", channel=16, note=36, cc=None, value=0, timestamp=0.0
+        )
         action.execute(event)
         assert get_folder_manager().in_folder is False
 
     def test_enters_folder(self):
         """Should enter configured folder."""
         action = FolderAction({"folder": "my_folder"})
-        event = MidiEvent(type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0)
+        event = MidiEvent(
+            type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0
+        )
         action.execute(event)
         assert get_folder_manager().current_folder == "my_folder"
 
     def test_no_folder_configured(self):
         """Should warn if no folder configured."""
         action = FolderAction({})
-        event = MidiEvent(type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0)
+        event = MidiEvent(
+            type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0
+        )
         action.execute(event)
         assert get_folder_manager().in_folder is False
 
@@ -222,7 +230,9 @@ class TestFolderBackAction:
         """Should only execute on note_on events."""
         get_folder_manager().enter_folder("test")
         action = FolderBackAction({})
-        event = MidiEvent(type="cc", channel=16, note=None, cc=1, value=64, timestamp=0.0)
+        event = MidiEvent(
+            type="cc", channel=16, note=None, cc=1, value=64, timestamp=0.0
+        )
         action.execute(event)
         assert get_folder_manager().in_folder is True  # Should still be in folder
 
@@ -230,7 +240,9 @@ class TestFolderBackAction:
         """Should exit current folder."""
         get_folder_manager().enter_folder("test")
         action = FolderBackAction({})
-        event = MidiEvent(type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0)
+        event = MidiEvent(
+            type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0
+        )
         action.execute(event)
         assert get_folder_manager().in_folder is False
 
@@ -249,7 +261,9 @@ class TestFolderRootAction:
         mgr.enter_folder("level2")
 
         action = FolderRootAction({})
-        event = MidiEvent(type="cc", channel=16, note=None, cc=1, value=64, timestamp=0.0)
+        event = MidiEvent(
+            type="cc", channel=16, note=None, cc=1, value=64, timestamp=0.0
+        )
         action.execute(event)
         assert mgr.in_folder is True  # Should still be in folder
 
@@ -260,7 +274,9 @@ class TestFolderRootAction:
         mgr.enter_folder("level2")
 
         action = FolderRootAction({})
-        event = MidiEvent(type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0)
+        event = MidiEvent(
+            type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0
+        )
         action.execute(event)
         assert mgr.in_folder is False
         assert mgr.depth == 0

@@ -8,7 +8,6 @@ from fastapi.testclient import TestClient
 
 from k2deck.web.server import app
 
-
 VALID_CONFIG = {
     "profile_name": "test-profile",
     "mappings": {
@@ -36,7 +35,7 @@ class TestExportProfile:
 
         assert resp.status_code == 200
         assert resp.headers["content-type"] == "application/json"
-        assert 'k2deck-gaming.json' in resp.headers.get("content-disposition", "")
+        assert "k2deck-gaming.json" in resp.headers.get("content-disposition", "")
         assert resp.json()["profile_name"] == "test-profile"
 
     @patch("k2deck.web.routes.profiles.CONFIG_DIR")
@@ -64,7 +63,13 @@ class TestImportProfile:
         content = json.dumps(VALID_CONFIG).encode("utf-8")
         resp = self.client.post(
             "/api/profiles/import",
-            files={"file": ("k2deck-test-profile.json", BytesIO(content), "application/json")},
+            files={
+                "file": (
+                    "k2deck-test-profile.json",
+                    BytesIO(content),
+                    "application/json",
+                )
+            },
         )
 
         assert resp.status_code == 200
@@ -155,7 +160,9 @@ class TestImportProfile:
 
         resp = self.client.post(
             "/api/profiles/import",
-            files={"file": ("k2deck-streaming.json", BytesIO(content), "application/json")},
+            files={
+                "file": ("k2deck-streaming.json", BytesIO(content), "application/json")
+            },
         )
 
         assert resp.status_code == 200

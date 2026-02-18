@@ -6,9 +6,8 @@ Timers are transient (not persisted to disk).
 
 import logging
 import threading
-import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Callable
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +22,9 @@ class TimerState:
     running: bool = True
     _stop_event: threading.Event = field(default_factory=threading.Event)
     thread: threading.Thread | None = None
-    on_tick: Callable[[float], None] | None = None  # Reserved for future WebSocket tick broadcast
+    on_tick: Callable[[float], None] | None = (
+        None  # Reserved for future WebSocket tick broadcast
+    )
     on_complete: Callable[[], None] | None = None
 
 
@@ -136,7 +137,9 @@ class TimerManager:
             if state and state.running:
                 state.running = False
                 state._stop_event.set()
-                logger.info("Timer '%s' stopped (%.0fs remaining)", name, state.remaining)
+                logger.info(
+                    "Timer '%s' stopped (%.0fs remaining)", name, state.remaining
+                )
                 return True
         return False
 

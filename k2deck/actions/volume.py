@@ -3,9 +3,8 @@
 import logging
 import threading
 import time
-from typing import TYPE_CHECKING
-
 from ctypes import POINTER, cast
+from typing import TYPE_CHECKING
 
 import pythoncom
 from comtypes import CLSCTX_ALL
@@ -67,7 +66,9 @@ class SessionCache:
                             self._cache[name] = []
                         self._cache[name].append(session)
                 self._last_refresh = time.monotonic()
-                logger.debug("Refreshed audio session cache: %d processes", len(self._cache))
+                logger.debug(
+                    "Refreshed audio session cache: %d processes", len(self._cache)
+                )
             finally:
                 pythoncom.CoUninitialize()
         except Exception as e:

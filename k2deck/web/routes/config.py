@@ -79,7 +79,7 @@ def _load_config(profile: str) -> dict[str, Any]:
         raise HTTPException(status_code=404, detail=f"Profile '{profile}' not found")
 
     try:
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             return json.load(f)
     except json.JSONDecodeError as e:
         raise HTTPException(status_code=500, detail=f"Invalid JSON in config: {e}")
@@ -147,7 +147,9 @@ def _validate_config(config: dict[str, Any]) -> ValidationResult:
             if isinstance(section, dict):
                 for key, mapping in section.items():
                     if not isinstance(mapping, dict):
-                        errors.append(f"Mapping '{section_name}.{key}' must be an object")
+                        errors.append(
+                            f"Mapping '{section_name}.{key}' must be an object"
+                        )
                     elif "action" not in mapping and not any(
                         k.startswith("layer_") for k in mapping.keys()
                     ):

@@ -1,7 +1,5 @@
 """Tests for layer management."""
 
-import pytest
-
 from k2deck.core import layers
 from k2deck.core.midi_listener import MidiEvent
 

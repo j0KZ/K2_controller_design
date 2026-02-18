@@ -1,9 +1,7 @@
 """Tests for sound.py - Sound playback actions."""
 
-import pytest
-from unittest.mock import patch, MagicMock
 from dataclasses import dataclass
-from pathlib import Path
+from unittest.mock import patch
 
 from k2deck.actions.sound import (
     SoundPlayAction,
@@ -16,6 +14,7 @@ from k2deck.actions.sound import (
 @dataclass
 class MidiEvent:
     """Mock MIDI event for testing."""
+
     type: str
     channel: int
     note: int | None
@@ -27,7 +26,7 @@ class MidiEvent:
 class TestPlayWav:
     """Test play_wav function."""
 
-    @patch('k2deck.actions.sound.winsound')
+    @patch("k2deck.actions.sound.winsound")
     def test_plays_wav_async(self, mock_winsound):
         """Should play WAV file asynchronously by default."""
         result = play_wav("C:/test/sound.wav")
@@ -40,7 +39,7 @@ class TestPlayWav:
         flags = call_args[0][1]
         assert flags & mock_winsound.SND_ASYNC
 
-    @patch('k2deck.actions.sound.winsound')
+    @patch("k2deck.actions.sound.winsound")
     def test_plays_wav_sync(self, mock_winsound):
         """Should play WAV file synchronously when async_play=False."""
         # Set up real flag values for proper testing
@@ -56,7 +55,7 @@ class TestPlayWav:
         # Should only have FILENAME flag, not ASYNC
         assert flags == mock_winsound.SND_FILENAME
 
-    @patch('k2deck.actions.sound.winsound')
+    @patch("k2deck.actions.sound.winsound")
     def test_returns_false_on_error(self, mock_winsound):
         """Should return False if playback fails."""
         mock_winsound.PlaySound.side_effect = Exception("Playback error")
@@ -69,14 +68,12 @@ class TestPlayWav:
 class TestStopPlayback:
     """Test stop_playback function."""
 
-    @patch('k2deck.actions.sound.winsound')
+    @patch("k2deck.actions.sound.winsound")
     def test_stops_winsound(self, mock_winsound):
         """Should stop winsound playback."""
         stop_playback()
 
-        mock_winsound.PlaySound.assert_called_once_with(
-            None, mock_winsound.SND_PURGE
-        )
+        mock_winsound.PlaySound.assert_called_once_with(None, mock_winsound.SND_PURGE)
 
 
 class TestSoundPlayAction:
@@ -86,8 +83,10 @@ class TestSoundPlayAction:
         """Should only execute on note_on events."""
         action = SoundPlayAction({"file": "test.wav"})
 
-        with patch('k2deck.actions.sound.play_wav') as mock_play:
-            event = MidiEvent(type="cc", channel=16, note=None, cc=1, value=64, timestamp=0.0)
+        with patch("k2deck.actions.sound.play_wav") as mock_play:
+            event = MidiEvent(
+                type="cc", channel=16, note=None, cc=1, value=64, timestamp=0.0
+            )
             action.execute(event)
             assert not mock_play.called
 
@@ -95,22 +94,26 @@ class TestSoundPlayAction:
         """Should ignore note_on with velocity 0."""
         action = SoundPlayAction({"file": "test.wav"})
 
-        with patch('k2deck.actions.sound.play_wav') as mock_play:
-            event = MidiEvent(type="note_on", channel=16, note=36, cc=None, value=0, timestamp=0.0)
+        with patch("k2deck.actions.sound.play_wav") as mock_play:
+            event = MidiEvent(
+                type="note_on", channel=16, note=36, cc=None, value=0, timestamp=0.0
+            )
             action.execute(event)
             assert not mock_play.called
 
     def test_warns_if_no_file_configured(self):
         """Should warn if no file configured."""
         action = SoundPlayAction({})
-        event = MidiEvent(type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0)
+        event = MidiEvent(
+            type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0
+        )
 
-        with patch('k2deck.actions.sound.play_wav') as mock_play:
+        with patch("k2deck.actions.sound.play_wav") as mock_play:
             action.execute(event)
             assert not mock_play.called
 
-    @patch('k2deck.actions.sound.Path')
-    @patch('k2deck.actions.sound.play_wav')
+    @patch("k2deck.actions.sound.Path")
+    @patch("k2deck.actions.sound.play_wav")
     def test_plays_wav_file(self, mock_play, mock_path):
         """Should play WAV file using native API."""
         mock_path.return_value.exists.return_value = True
@@ -118,14 +121,16 @@ class TestSoundPlayAction:
         mock_play.return_value = True
 
         action = SoundPlayAction({"file": "C:/sounds/alert.wav"})
-        event = MidiEvent(type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0)
+        event = MidiEvent(
+            type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0
+        )
 
         action.execute(event)
 
         mock_play.assert_called_once()
 
-    @patch('k2deck.actions.sound.Path')
-    @patch('k2deck.actions.sound.play_with_pygame')
+    @patch("k2deck.actions.sound.Path")
+    @patch("k2deck.actions.sound.play_with_pygame")
     def test_plays_mp3_with_pygame(self, mock_pygame, mock_path):
         """Should play MP3 file using pygame."""
         mock_path.return_value.exists.return_value = True
@@ -133,7 +138,9 @@ class TestSoundPlayAction:
         mock_pygame.return_value = True
 
         action = SoundPlayAction({"file": "C:/sounds/alert.mp3", "volume": 80})
-        event = MidiEvent(type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0)
+        event = MidiEvent(
+            type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0
+        )
 
         action.execute(event)
 
@@ -142,21 +149,23 @@ class TestSoundPlayAction:
         call_args = mock_pygame.call_args[0]
         assert call_args[1] == 0.8
 
-    @patch('k2deck.actions.sound.Path')
+    @patch("k2deck.actions.sound.Path")
     def test_warns_if_file_not_found(self, mock_path):
         """Should warn if file doesn't exist."""
         mock_path.return_value.exists.return_value = False
 
         action = SoundPlayAction({"file": "C:/sounds/missing.wav"})
-        event = MidiEvent(type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0)
+        event = MidiEvent(
+            type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0
+        )
 
-        with patch('k2deck.actions.sound.play_wav') as mock_play:
+        with patch("k2deck.actions.sound.play_wav") as mock_play:
             action.execute(event)
             assert not mock_play.called
 
-    @patch('k2deck.actions.sound.Path')
-    @patch('k2deck.actions.sound.stop_playback')
-    @patch('k2deck.actions.sound.play_wav')
+    @patch("k2deck.actions.sound.Path")
+    @patch("k2deck.actions.sound.stop_playback")
+    @patch("k2deck.actions.sound.play_wav")
     def test_stop_others_stops_before_play(self, mock_play, mock_stop, mock_path):
         """Should stop other sounds before playing if stop_others=True."""
         mock_path.return_value.exists.return_value = True
@@ -164,7 +173,9 @@ class TestSoundPlayAction:
         mock_play.return_value = True
 
         action = SoundPlayAction({"file": "test.wav", "stop_others": True})
-        event = MidiEvent(type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0)
+        event = MidiEvent(
+            type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0
+        )
 
         action.execute(event)
 
@@ -179,8 +190,10 @@ class TestSoundStopAction:
         """Should only execute on note_on events."""
         action = SoundStopAction({})
 
-        with patch('k2deck.actions.sound.stop_playback') as mock_stop:
-            event = MidiEvent(type="cc", channel=16, note=None, cc=1, value=64, timestamp=0.0)
+        with patch("k2deck.actions.sound.stop_playback") as mock_stop:
+            event = MidiEvent(
+                type="cc", channel=16, note=None, cc=1, value=64, timestamp=0.0
+            )
             action.execute(event)
             assert not mock_stop.called
 
@@ -188,16 +201,20 @@ class TestSoundStopAction:
         """Should ignore note_on with velocity 0."""
         action = SoundStopAction({})
 
-        with patch('k2deck.actions.sound.stop_playback') as mock_stop:
-            event = MidiEvent(type="note_on", channel=16, note=36, cc=None, value=0, timestamp=0.0)
+        with patch("k2deck.actions.sound.stop_playback") as mock_stop:
+            event = MidiEvent(
+                type="note_on", channel=16, note=36, cc=None, value=0, timestamp=0.0
+            )
             action.execute(event)
             assert not mock_stop.called
 
-    @patch('k2deck.actions.sound.stop_playback')
+    @patch("k2deck.actions.sound.stop_playback")
     def test_stops_all_sounds(self, mock_stop):
         """Should stop all sounds."""
         action = SoundStopAction({})
-        event = MidiEvent(type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0)
+        event = MidiEvent(
+            type="note_on", channel=16, note=36, cc=None, value=127, timestamp=0.0
+        )
 
         action.execute(event)
 

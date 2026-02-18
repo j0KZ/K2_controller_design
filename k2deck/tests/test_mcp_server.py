@@ -1,11 +1,10 @@
 """Tests for k2deck.mcp.server — MCP tool handlers."""
 
 import json
-
-import pytest
 from unittest.mock import AsyncMock, patch
 
 import httpx
+import pytest
 
 from k2deck.mcp import client as client_module
 
@@ -113,7 +112,7 @@ class TestMCPCallTool:
         mock_client.put.return_value = {"message": "LED 36 set to off"}
         mock_get_client.return_value = mock_client
 
-        result = await call_tool("set_led", {"note": 36, "on": False})
+        await call_tool("set_led", {"note": 36, "on": False})
         mock_client.put.assert_called_once_with(
             "/api/k2/state/leds/36",
             json={"note": 36, "color": None, "on": False},

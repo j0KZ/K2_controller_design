@@ -1,6 +1,5 @@
 """Tests for WebSocket Connection Manager."""
 
-import asyncio
 import json
 from unittest.mock import AsyncMock, MagicMock, patch
 

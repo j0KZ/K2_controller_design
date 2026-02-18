@@ -283,8 +283,10 @@ class ClipboardPasteAction(Action):
 
         # Optionally paste with Ctrl+V
         if self.config.get("paste", False):
-            from k2deck.core import keyboard
             import time
+
+            from k2deck.core import keyboard
+
             time.sleep(0.05)  # Small delay for clipboard to be ready
             keyboard.execute_hotkey(["ctrl", "v"], hold_ms=20)
             logger.info("Pasted text (%d chars)", len(text))

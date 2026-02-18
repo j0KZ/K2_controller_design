@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 # Check for keyring availability
 try:
     import keyring
+
     HAS_KEYRING = True
 except ImportError:
     HAS_KEYRING = False
@@ -22,6 +23,7 @@ except ImportError:
 # Check for DPAPI availability (Windows only)
 try:
     import win32crypt
+
     HAS_DPAPI = True
 except ImportError:
     HAS_DPAPI = False

@@ -131,7 +131,10 @@ class SpotifyVolumeAction(Action):
             return
 
         try:
-            from k2deck.actions.volume import set_process_volume, invalidate_session_cache
+            from k2deck.actions.volume import (
+                invalidate_session_cache,
+                set_process_volume,
+            )
 
             # Map MIDI value (0-127) to volume (0.0-1.0)
             min_vol = self.config.get("min_volume", 0) / 100.0

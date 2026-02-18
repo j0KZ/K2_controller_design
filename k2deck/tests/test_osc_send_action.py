@@ -78,10 +78,15 @@ class TestOscSendAction:
         mock_sender = MagicMock()
         mock_sender_cls.return_value = mock_sender
 
-        action = OscSendAction({
-            "action": "osc_send", "osc_port": 9000,
-            "osc_param": "cutoff", "min": 200, "max": 12000,
-        })
+        action = OscSendAction(
+            {
+                "action": "osc_send",
+                "osc_port": 9000,
+                "osc_param": "cutoff",
+                "min": 200,
+                "max": 12000,
+            }
+        )
         event = FakeMidiEvent(type="cc", cc=16, value=0)
         action.execute(event)
 
@@ -96,10 +101,15 @@ class TestOscSendAction:
         mock_sender = MagicMock()
         mock_sender_cls.return_value = mock_sender
 
-        action = OscSendAction({
-            "action": "osc_send", "osc_port": 9000,
-            "osc_param": "cutoff", "min": 200, "max": 12000,
-        })
+        action = OscSendAction(
+            {
+                "action": "osc_send",
+                "osc_port": 9000,
+                "osc_param": "cutoff",
+                "min": 200,
+                "max": 12000,
+            }
+        )
         event = FakeMidiEvent(type="cc", cc=16, value=127)
         action.execute(event)
 
@@ -111,10 +121,16 @@ class TestOscSendAction:
         mock_sender = MagicMock()
         mock_sender_cls.return_value = mock_sender
 
-        action = OscSendAction({
-            "action": "osc_send", "osc_port": 9000,
-            "osc_param": "vol", "min": 0, "max": 100, "curve": "linear",
-        })
+        action = OscSendAction(
+            {
+                "action": "osc_send",
+                "osc_port": 9000,
+                "osc_param": "vol",
+                "min": 0,
+                "max": 100,
+                "curve": "linear",
+            }
+        )
         event = FakeMidiEvent(type="cc", cc=16, value=64)
         action.execute(event)
 
@@ -126,10 +142,16 @@ class TestOscSendAction:
         mock_sender = MagicMock()
         mock_sender_cls.return_value = mock_sender
 
-        action = OscSendAction({
-            "action": "osc_send", "osc_port": 9000,
-            "osc_param": "cutoff", "min": 0, "max": 100, "curve": "exponential",
-        })
+        action = OscSendAction(
+            {
+                "action": "osc_send",
+                "osc_port": 9000,
+                "osc_param": "cutoff",
+                "min": 0,
+                "max": 100,
+                "curve": "exponential",
+            }
+        )
         event = FakeMidiEvent(type="cc", cc=16, value=64)
         action.execute(event)
 
@@ -142,9 +164,12 @@ class TestOscSendAction:
         mock_sender = MagicMock()
         mock_sender_cls.return_value = mock_sender
 
-        action = OscSendAction({
-            "action": "osc_send", "osc_port": 9000,
-        })
+        action = OscSendAction(
+            {
+                "action": "osc_send",
+                "osc_port": 9000,
+            }
+        )
         event = FakeMidiEvent(type="cc", cc=16, value=64)
         action.execute(event)
 
@@ -167,13 +192,15 @@ class TestOscSendAction:
         mock_sender = MagicMock()
         mock_sender_cls.return_value = mock_sender
 
-        action = OscSendAction({
-            "action": "osc_send",
-            "osc_host": "192.168.1.10",
-            "osc_port": 8000,
-            "osc_address": "/custom/path",
-            "osc_param": "test",
-        })
+        action = OscSendAction(
+            {
+                "action": "osc_send",
+                "osc_host": "192.168.1.10",
+                "osc_port": 8000,
+                "osc_address": "/custom/path",
+                "osc_param": "test",
+            }
+        )
         event = FakeMidiEvent(type="cc", cc=16, value=64)
         action.execute(event)
 
@@ -187,9 +214,13 @@ class TestOscSendAction:
         mock_sender.send.side_effect = OSError("fail")
         mock_sender_cls.return_value = mock_sender
 
-        action = OscSendAction({
-            "action": "osc_send", "osc_port": 9000, "osc_param": "test",
-        })
+        action = OscSendAction(
+            {
+                "action": "osc_send",
+                "osc_port": 9000,
+                "osc_param": "test",
+            }
+        )
         event = FakeMidiEvent(type="cc", cc=16, value=64)
 
         # Should not raise
@@ -205,9 +236,12 @@ class TestOscSendRelativeAction:
         OscSendRelativeAction.reset_accumulators()
 
     def test_ignores_non_cc_events(self, mock_sender_cls):
-        action = OscSendRelativeAction({
-            "action": "osc_send_relative", "osc_param": "detune",
-        })
+        action = OscSendRelativeAction(
+            {
+                "action": "osc_send_relative",
+                "osc_param": "detune",
+            }
+        )
         event = FakeMidiEvent(type="note_on", note=36, value=127)
         action.execute(event)
         mock_sender_cls.return_value.send.assert_not_called()
@@ -217,10 +251,16 @@ class TestOscSendRelativeAction:
         mock_sender = MagicMock()
         mock_sender_cls.return_value = mock_sender
 
-        action = OscSendRelativeAction({
-            "action": "osc_send_relative", "osc_param": "detune",
-            "min": 0, "max": 100, "step": 1, "initial": 50,
-        })
+        action = OscSendRelativeAction(
+            {
+                "action": "osc_send_relative",
+                "osc_param": "detune",
+                "min": 0,
+                "max": 100,
+                "step": 1,
+                "initial": 50,
+            }
+        )
         event = FakeMidiEvent(type="cc", cc=0, value=1)
         action.execute(event)
 
@@ -232,10 +272,16 @@ class TestOscSendRelativeAction:
         mock_sender = MagicMock()
         mock_sender_cls.return_value = mock_sender
 
-        action = OscSendRelativeAction({
-            "action": "osc_send_relative", "osc_param": "detune",
-            "min": 0, "max": 100, "step": 1, "initial": 50,
-        })
+        action = OscSendRelativeAction(
+            {
+                "action": "osc_send_relative",
+                "osc_param": "detune",
+                "min": 0,
+                "max": 100,
+                "step": 1,
+                "initial": 50,
+            }
+        )
         event = FakeMidiEvent(type="cc", cc=0, value=127)
         action.execute(event)
 
@@ -247,10 +293,16 @@ class TestOscSendRelativeAction:
         mock_sender = MagicMock()
         mock_sender_cls.return_value = mock_sender
 
-        action = OscSendRelativeAction({
-            "action": "osc_send_relative", "osc_param": "rate",
-            "min": 0, "max": 100, "step": 2, "initial": 50,
-        })
+        action = OscSendRelativeAction(
+            {
+                "action": "osc_send_relative",
+                "osc_param": "rate",
+                "min": 0,
+                "max": 100,
+                "step": 2,
+                "initial": 50,
+            }
+        )
         event = FakeMidiEvent(type="cc", cc=0, value=3)
         action.execute(event)
 
@@ -263,10 +315,16 @@ class TestOscSendRelativeAction:
         mock_sender = MagicMock()
         mock_sender_cls.return_value = mock_sender
 
-        action = OscSendRelativeAction({
-            "action": "osc_send_relative", "osc_param": "clip_max",
-            "min": 0, "max": 10, "step": 1, "initial": 9,
-        })
+        action = OscSendRelativeAction(
+            {
+                "action": "osc_send_relative",
+                "osc_param": "clip_max",
+                "min": 0,
+                "max": 10,
+                "step": 1,
+                "initial": 9,
+            }
+        )
         event = FakeMidiEvent(type="cc", cc=0, value=5)
         action.execute(event)
 
@@ -278,10 +336,16 @@ class TestOscSendRelativeAction:
         mock_sender = MagicMock()
         mock_sender_cls.return_value = mock_sender
 
-        action = OscSendRelativeAction({
-            "action": "osc_send_relative", "osc_param": "clip_min",
-            "min": 0, "max": 100, "step": 1, "initial": 2,
-        })
+        action = OscSendRelativeAction(
+            {
+                "action": "osc_send_relative",
+                "osc_param": "clip_min",
+                "min": 0,
+                "max": 100,
+                "step": 1,
+                "initial": 2,
+            }
+        )
         event = FakeMidiEvent(type="cc", cc=0, value=126)  # -2
         action.execute(event)
 
@@ -290,34 +354,49 @@ class TestOscSendRelativeAction:
 
     def test_default_initial_is_midpoint(self, mock_sender_cls):
         """Default initial value is (min + max) / 2."""
-        action = OscSendRelativeAction({
-            "action": "osc_send_relative", "osc_param": "mid",
-            "min": 10, "max": 90,
-        })
+        action = OscSendRelativeAction(
+            {
+                "action": "osc_send_relative",
+                "osc_param": "mid",
+                "min": 10,
+                "max": 90,
+            }
+        )
         assert action._initial == pytest.approx(50.0)
 
     def test_custom_initial_value(self, mock_sender_cls):
         """Custom initial value is used."""
-        action = OscSendRelativeAction({
-            "action": "osc_send_relative", "osc_param": "custom",
-            "min": 0, "max": 100, "initial": 25,
-        })
+        action = OscSendRelativeAction(
+            {
+                "action": "osc_send_relative",
+                "osc_param": "custom",
+                "min": 0,
+                "max": 100,
+                "initial": 25,
+            }
+        )
         assert action._initial == pytest.approx(25.0)
 
     def test_value_0_ignored(self, mock_sender_cls):
         """CC value 0 does nothing."""
-        action = OscSendRelativeAction({
-            "action": "osc_send_relative", "osc_param": "ign0",
-        })
+        action = OscSendRelativeAction(
+            {
+                "action": "osc_send_relative",
+                "osc_param": "ign0",
+            }
+        )
         event = FakeMidiEvent(type="cc", cc=0, value=0)
         action.execute(event)
         mock_sender_cls.return_value.send.assert_not_called()
 
     def test_value_64_ignored(self, mock_sender_cls):
         """CC value 64 does nothing."""
-        action = OscSendRelativeAction({
-            "action": "osc_send_relative", "osc_param": "ign64",
-        })
+        action = OscSendRelativeAction(
+            {
+                "action": "osc_send_relative",
+                "osc_param": "ign64",
+            }
+        )
         event = FakeMidiEvent(type="cc", cc=0, value=64)
         action.execute(event)
         mock_sender_cls.return_value.send.assert_not_called()
@@ -328,8 +407,12 @@ class TestOscSendRelativeAction:
         mock_sender_cls.return_value = mock_sender
 
         config = {
-            "action": "osc_send_relative", "osc_param": "persist",
-            "min": 0, "max": 100, "step": 1, "initial": 50,
+            "action": "osc_send_relative",
+            "osc_param": "persist",
+            "min": 0,
+            "max": 100,
+            "step": 1,
+            "initial": 50,
         }
 
         # First instance: CW +1
@@ -349,14 +432,26 @@ class TestOscSendRelativeAction:
         mock_sender = MagicMock()
         mock_sender_cls.return_value = mock_sender
 
-        action_a = OscSendRelativeAction({
-            "action": "osc_send_relative", "osc_param": "param_a",
-            "min": 0, "max": 100, "step": 10, "initial": 50,
-        })
-        action_b = OscSendRelativeAction({
-            "action": "osc_send_relative", "osc_param": "param_b",
-            "min": 0, "max": 100, "step": 1, "initial": 0,
-        })
+        action_a = OscSendRelativeAction(
+            {
+                "action": "osc_send_relative",
+                "osc_param": "param_a",
+                "min": 0,
+                "max": 100,
+                "step": 10,
+                "initial": 50,
+            }
+        )
+        action_b = OscSendRelativeAction(
+            {
+                "action": "osc_send_relative",
+                "osc_param": "param_b",
+                "min": 0,
+                "max": 100,
+                "step": 1,
+                "initial": 0,
+            }
+        )
 
         action_a.execute(FakeMidiEvent(type="cc", cc=0, value=1))
         action_b.execute(FakeMidiEvent(type="cc", cc=1, value=1))
@@ -373,8 +468,12 @@ class TestOscSendRelativeAction:
         mock_sender_cls.return_value = mock_sender
 
         config = {
-            "action": "osc_send_relative", "osc_param": "reset_test",
-            "min": 0, "max": 100, "step": 1, "initial": 50,
+            "action": "osc_send_relative",
+            "osc_param": "reset_test",
+            "min": 0,
+            "max": 100,
+            "step": 1,
+            "initial": 50,
         }
 
         action = OscSendRelativeAction(config)
@@ -393,10 +492,15 @@ class TestOscSendRelativeAction:
         mock_sender = MagicMock()
         mock_sender_cls.return_value = mock_sender
 
-        action = OscSendRelativeAction({
-            "action": "osc_send_relative",
-            "min": 0, "max": 100, "step": 1, "initial": 50,
-        })
+        action = OscSendRelativeAction(
+            {
+                "action": "osc_send_relative",
+                "min": 0,
+                "max": 100,
+                "step": 1,
+                "initial": 50,
+            }
+        )
         event = FakeMidiEvent(type="cc", cc=0, value=1)
         action.execute(event)
 
@@ -409,10 +513,15 @@ class TestOscSendRelativeAction:
         mock_sender.send.side_effect = OSError("fail")
         mock_sender_cls.return_value = mock_sender
 
-        action = OscSendRelativeAction({
-            "action": "osc_send_relative", "osc_param": "err",
-            "min": 0, "max": 100, "initial": 50,
-        })
+        action = OscSendRelativeAction(
+            {
+                "action": "osc_send_relative",
+                "osc_param": "err",
+                "min": 0,
+                "max": 100,
+                "initial": 50,
+            }
+        )
         # Should not raise
         action.execute(FakeMidiEvent(type="cc", cc=0, value=1))
 
@@ -426,18 +535,24 @@ class TestOscSendTriggerAction:
         OscSendTriggerAction.reset_toggle_states()
 
     def test_ignores_cc_events(self, mock_sender_cls):
-        action = OscSendTriggerAction({
-            "action": "osc_send_trigger", "osc_param": "mute",
-        })
+        action = OscSendTriggerAction(
+            {
+                "action": "osc_send_trigger",
+                "osc_param": "mute",
+            }
+        )
         event = FakeMidiEvent(type="cc", cc=16, value=64)
         action.execute(event)
         mock_sender_cls.return_value.send.assert_not_called()
 
     def test_ignores_zero_velocity(self, mock_sender_cls):
         """Note on with velocity 0 (release) is ignored."""
-        action = OscSendTriggerAction({
-            "action": "osc_send_trigger", "osc_param": "mute",
-        })
+        action = OscSendTriggerAction(
+            {
+                "action": "osc_send_trigger",
+                "osc_param": "mute",
+            }
+        )
         event = FakeMidiEvent(type="note_on", note=48, value=0)
         action.execute(event)
         mock_sender_cls.return_value.send.assert_not_called()
@@ -447,10 +562,13 @@ class TestOscSendTriggerAction:
         mock_sender = MagicMock()
         mock_sender_cls.return_value = mock_sender
 
-        action = OscSendTriggerAction({
-            "action": "osc_send_trigger", "osc_param": "bang_test",
-            "mode": "bang",
-        })
+        action = OscSendTriggerAction(
+            {
+                "action": "osc_send_trigger",
+                "osc_param": "bang_test",
+                "mode": "bang",
+            }
+        )
 
         # Press twice
         for _ in range(2):
@@ -465,10 +583,13 @@ class TestOscSendTriggerAction:
         mock_sender = MagicMock()
         mock_sender_cls.return_value = mock_sender
 
-        action = OscSendTriggerAction({
-            "action": "osc_send_trigger", "osc_param": "toggle_test",
-            "mode": "toggle",
-        })
+        action = OscSendTriggerAction(
+            {
+                "action": "osc_send_trigger",
+                "osc_param": "toggle_test",
+                "mode": "toggle",
+            }
+        )
 
         press = FakeMidiEvent(type="note_on", note=48, value=127)
         action.execute(press)  # 1st: on
@@ -482,9 +603,12 @@ class TestOscSendTriggerAction:
 
     def test_default_mode_is_bang(self, mock_sender_cls):
         """Default mode is bang."""
-        action = OscSendTriggerAction({
-            "action": "osc_send_trigger", "osc_param": "default",
-        })
+        action = OscSendTriggerAction(
+            {
+                "action": "osc_send_trigger",
+                "osc_param": "default",
+            }
+        )
         assert action._mode == "bang"
 
     def test_sends_with_param_name(self, mock_sender_cls):
@@ -492,11 +616,13 @@ class TestOscSendTriggerAction:
         mock_sender = MagicMock()
         mock_sender_cls.return_value = mock_sender
 
-        action = OscSendTriggerAction({
-            "action": "osc_send_trigger",
-            "osc_address": "/pd/param",
-            "osc_param": "mixer__p__mute",
-        })
+        action = OscSendTriggerAction(
+            {
+                "action": "osc_send_trigger",
+                "osc_address": "/pd/param",
+                "osc_param": "mixer__p__mute",
+            }
+        )
         action.execute(FakeMidiEvent(type="note_on", note=48, value=127))
 
         args = mock_sender.send.call_args[0]
@@ -509,9 +635,11 @@ class TestOscSendTriggerAction:
         mock_sender = MagicMock()
         mock_sender_cls.return_value = mock_sender
 
-        action = OscSendTriggerAction({
-            "action": "osc_send_trigger",
-        })
+        action = OscSendTriggerAction(
+            {
+                "action": "osc_send_trigger",
+            }
+        )
         action.execute(FakeMidiEvent(type="note_on", note=48, value=127))
 
         args = mock_sender.send.call_args[0]
@@ -523,7 +651,8 @@ class TestOscSendTriggerAction:
         mock_sender_cls.return_value = mock_sender
 
         config = {
-            "action": "osc_send_trigger", "osc_param": "reset_t",
+            "action": "osc_send_trigger",
+            "osc_param": "reset_t",
             "mode": "toggle",
         }
 
@@ -533,7 +662,9 @@ class TestOscSendTriggerAction:
         OscSendTriggerAction.reset_toggle_states()
 
         action2 = OscSendTriggerAction(config)
-        action2.execute(FakeMidiEvent(type="note_on", note=48, value=127))  # → 1.0 again (reset)
+        action2.execute(
+            FakeMidiEvent(type="note_on", note=48, value=127)
+        )  # → 1.0 again (reset)
 
         calls = mock_sender.send.call_args_list
         assert calls[0][0][2] == pytest.approx(1.0)
@@ -544,14 +675,20 @@ class TestOscSendTriggerAction:
         mock_sender = MagicMock()
         mock_sender_cls.return_value = mock_sender
 
-        action_a = OscSendTriggerAction({
-            "action": "osc_send_trigger", "osc_param": "mute_a",
-            "mode": "toggle",
-        })
-        action_b = OscSendTriggerAction({
-            "action": "osc_send_trigger", "osc_param": "mute_b",
-            "mode": "toggle",
-        })
+        action_a = OscSendTriggerAction(
+            {
+                "action": "osc_send_trigger",
+                "osc_param": "mute_a",
+                "mode": "toggle",
+            }
+        )
+        action_b = OscSendTriggerAction(
+            {
+                "action": "osc_send_trigger",
+                "osc_param": "mute_b",
+                "mode": "toggle",
+            }
+        )
 
         press = FakeMidiEvent(type="note_on", note=48, value=127)
         action_a.execute(press)  # a → 1.0
@@ -569,8 +706,11 @@ class TestOscSendTriggerAction:
         mock_sender.send.side_effect = OSError("fail")
         mock_sender_cls.return_value = mock_sender
 
-        action = OscSendTriggerAction({
-            "action": "osc_send_trigger", "osc_param": "err",
-        })
+        action = OscSendTriggerAction(
+            {
+                "action": "osc_send_trigger",
+                "osc_param": "err",
+            }
+        )
         # Should not raise
         action.execute(FakeMidiEvent(type="note_on", note=48, value=127))

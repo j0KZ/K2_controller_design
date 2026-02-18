@@ -5,10 +5,10 @@ and the Windows Audio API. This module rate-limits processing to a
 configurable max Hz.
 """
 
-import threading
 import time
+from collections.abc import Callable
 from threading import Lock, Timer
-from typing import Any, Callable
+from typing import Any
 
 
 class FaderDebouncer:

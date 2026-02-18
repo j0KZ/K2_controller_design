@@ -256,9 +256,7 @@ async def import_profile(file: UploadFile) -> dict[str, str]:
 
     path = _get_profile_path(name)
     if path.exists():
-        raise HTTPException(
-            status_code=409, detail=f"Profile '{name}' already exists"
-        )
+        raise HTTPException(status_code=409, detail=f"Profile '{name}' already exists")
 
     # Save
     CONFIG_DIR.mkdir(parents=True, exist_ok=True)
@@ -291,7 +289,7 @@ async def get_profile(name: str) -> dict[str, Any]:
         raise HTTPException(status_code=404, detail=f"Profile '{name}' not found")
 
     try:
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             return json.load(f)
     except json.JSONDecodeError as e:
         raise HTTPException(status_code=500, detail=f"Invalid JSON in profile: {e}")

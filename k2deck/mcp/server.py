@@ -151,7 +151,7 @@ async def list_tools() -> list[Tool]:
                 "Execute a K2 Deck action by type and config. "
                 "Action types include: hotkey, volume, timer_start, timer_stop, "
                 "timer_toggle, counter, osc_send, sound_play, tts, system, etc. "
-                "Config is action-specific (e.g., {\"keys\": [\"ctrl\", \"c\"]} for hotkey)."
+                'Config is action-specific (e.g., {"keys": ["ctrl", "c"]} for hotkey).'
             ),
             inputSchema={
                 "type": "object",
@@ -233,18 +233,22 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
                 "/api/k2/state/layer",
                 json={"layer": layer},
             )
-            return [TextContent(
-                type="text",
-                text=f"Layer set to {layer} (was {result.get('previous', '?')})",
-            )]
+            return [
+                TextContent(
+                    type="text",
+                    text=f"Layer set to {layer} (was {result.get('previous', '?')})",
+                )
+            ]
 
         if name == "activate_profile":
             profile_name = arguments["name"]
             result = await client.put(f"/api/profiles/{profile_name}/activate", json={})
-            return [TextContent(
-                type="text",
-                text=f"Profile '{profile_name}' activated (was '{result.get('previous', '?')}')",
-            )]
+            return [
+                TextContent(
+                    type="text",
+                    text=f"Profile '{profile_name}' activated (was '{result.get('previous', '?')}')",
+                )
+            ]
 
         if name == "trigger_action":
             action_type = arguments["action"]
@@ -253,21 +257,27 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
                 "/api/k2/trigger",
                 json={"action": action_type, "config": action_config},
             )
-            return [TextContent(type="text", text=result.get("message", "Action triggered"))]
+            return [
+                TextContent(type="text", text=result.get("message", "Action triggered"))
+            ]
 
         # Unknown tool
         return [TextContent(type="text", text=f"Unknown tool: {name}")]
 
     except httpx.HTTPStatusError as e:
-        return [TextContent(
-            type="text",
-            text=f"K2 Deck API error {e.response.status_code}: {e.response.text}",
-        )]
+        return [
+            TextContent(
+                type="text",
+                text=f"K2 Deck API error {e.response.status_code}: {e.response.text}",
+            )
+        ]
     except httpx.ConnectError:
-        return [TextContent(
-            type="text",
-            text="Cannot connect to K2 Deck web server on localhost:8420. Is it running?",
-        )]
+        return [
+            TextContent(
+                type="text",
+                text="Cannot connect to K2 Deck web server on localhost:8420. Is it running?",
+            )
+        ]
     except Exception as e:
         return [TextContent(type="text", text=f"Error: {e}")]
 

@@ -14,6 +14,9 @@ from k2deck.actions.base import Action
 from k2deck.actions.conditional import ConditionalAction
 from k2deck.actions.counter import CounterAction
 from k2deck.actions.folder import FolderAction, FolderBackAction, FolderRootAction
+from k2deck.actions.hotkey import HotkeyAction, HotkeyRelativeAction
+from k2deck.actions.mouse_scroll import MouseScrollAction
+from k2deck.actions.multi import MultiAction, MultiToggleAction
 from k2deck.actions.obs import (
     OBSMuteAction,
     OBSRecordAction,
@@ -21,9 +24,12 @@ from k2deck.actions.obs import (
     OBSSourceToggleAction,
     OBSStreamAction,
 )
-from k2deck.actions.hotkey import HotkeyAction, HotkeyRelativeAction
-from k2deck.actions.mouse_scroll import MouseScrollAction
-from k2deck.actions.multi import MultiAction, MultiToggleAction
+from k2deck.actions.osc_send import (
+    OscSendAction,
+    OscSendRelativeAction,
+    OscSendTriggerAction,
+)
+from k2deck.actions.sound import SoundPlayAction, SoundStopAction
 from k2deck.actions.spotify import (
     SpotifyLikeAction,
     SpotifyNextAction,
@@ -35,8 +41,13 @@ from k2deck.actions.spotify import (
     SpotifyShuffleAction,
     SpotifyVolumeAction,
 )
-from k2deck.actions.sound import SoundPlayAction, SoundStopAction
-from k2deck.actions.system import ClipboardPasteAction, NoopAction, OpenURLAction, SystemAction
+from k2deck.actions.system import (
+    ClipboardPasteAction,
+    NoopAction,
+    OpenURLAction,
+    SystemAction,
+)
+from k2deck.actions.timer import TimerStartAction, TimerStopAction, TimerToggleAction
 from k2deck.actions.tts import TTSAction
 from k2deck.actions.twitch import (
     TwitchChatAction,
@@ -45,8 +56,6 @@ from k2deck.actions.twitch import (
     TwitchMarkerAction,
     TwitchTitleAction,
 )
-from k2deck.actions.osc_send import OscSendAction, OscSendRelativeAction, OscSendTriggerAction
-from k2deck.actions.timer import TimerStartAction, TimerStopAction, TimerToggleAction
 from k2deck.actions.volume import VolumeAction
 from k2deck.actions.window import FocusAction, LaunchAction
 from k2deck.core import folders, layers
@@ -183,7 +192,7 @@ class MappingEngine:
         if not path.exists():
             raise FileNotFoundError(f"Config file not found: {path}")
 
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             try:
                 self._config = json.load(f)
             except json.JSONDecodeError as e:
@@ -228,14 +237,20 @@ class MappingEngine:
                 continue
 
             if not isinstance(channel, int) or not 1 <= channel <= 16:
-                logger.warning("Zone '%s' invalid channel %s, skipping", zone_name, channel)
+                logger.warning(
+                    "Zone '%s' invalid channel %s, skipping", zone_name, channel
+                )
                 continue
 
             self._midi_channels.append(channel)
             self._zones[channel] = zone_data.get("mappings", {})
 
-            logger.info("  Zone '%s': channel %d, %d mappings",
-                        zone_name, channel, self._count_zone_mappings(self._zones[channel]))
+            logger.info(
+                "  Zone '%s': channel %d, %d mappings",
+                zone_name,
+                channel,
+                self._count_zone_mappings(self._zones[channel]),
+            )
 
         # Also set default mappings for backward compatibility
         if self._zones:
@@ -279,7 +294,9 @@ class MappingEngine:
                     mappings = zone_data["mappings"]
                     for section in ["note_on", "cc_absolute", "cc_relative"]:
                         if section in mappings:
-                            self._validate_mapping_section(f"{zone_name}.{section}", mappings[section])
+                            self._validate_mapping_section(
+                                f"{zone_name}.{section}", mappings[section]
+                            )
         else:
             mappings = self._config["mappings"]
             if not isinstance(mappings, dict):
@@ -301,9 +318,7 @@ class MappingEngine:
                 continue
 
             if not isinstance(entry, dict):
-                raise ConfigValidationError(
-                    f"Mapping {section}[{key}] must be a dict"
-                )
+                raise ConfigValidationError(f"Mapping {section}[{key}] must be a dict")
 
             # name is optional but recommended
             # action is required
@@ -326,7 +341,9 @@ class MappingEngine:
         count = 0
         for section in ["note_on", "cc_absolute", "cc_relative"]:
             if section in self._mappings:
-                count += sum(1 for k in self._mappings[section] if not k.startswith("_"))
+                count += sum(
+                    1 for k in self._mappings[section] if not k.startswith("_")
+                )
         return count
 
     def resolve(self, event: "MidiEvent") -> tuple[Action | None, dict | None]:
@@ -369,7 +386,9 @@ class MappingEngine:
                 raw_config = folder_note_mappings.get(str(event.note))
                 if raw_config:
                     # Resolve layer-specific mapping from folder
-                    mapping_config = layers.resolve_layer_mapping(raw_config, event.note)
+                    mapping_config = layers.resolve_layer_mapping(
+                        raw_config, event.note
+                    )
 
             # If not found in folder (or not in folder), use regular mappings
             if mapping_config is None:

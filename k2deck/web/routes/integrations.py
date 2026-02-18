@@ -334,7 +334,9 @@ async def disconnect_integration(name: IntegrationName) -> IntegrationStatus:
 
     elif name == IntegrationName.SPOTIFY:
         # TODO: Implement Spotify disconnect
-        raise HTTPException(status_code=501, detail="Spotify disconnect not implemented")
+        raise HTTPException(
+            status_code=501, detail="Spotify disconnect not implemented"
+        )
 
     elif name == IntegrationName.TWITCH:
         # TODO: Implement Twitch disconnect

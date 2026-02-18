@@ -6,8 +6,7 @@ Only activates when the user explicitly configures profile_auto_switch rules.
 
 import logging
 import threading
-import time
-from typing import Callable
+from collections.abc import Callable
 
 from k2deck.core.context import get_foreground_app
 

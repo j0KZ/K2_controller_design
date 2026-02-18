@@ -11,8 +11,8 @@ import json
 import logging
 import threading
 import time
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
 
 logger = logging.getLogger(__name__)
 
@@ -76,7 +76,7 @@ class AnalogStateManager:
         """Load saved positions from disk."""
         try:
             if self._state_file.exists():
-                with open(self._state_file, "r", encoding="utf-8") as f:
+                with open(self._state_file, encoding="utf-8") as f:
                     data = json.load(f)
                     # Convert string keys to int (JSON only supports string keys)
                     self._positions = {int(k): v for k, v in data.items()}

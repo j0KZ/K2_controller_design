@@ -56,7 +56,7 @@ def format_midi_message(msg: mido.Message) -> str:
         elif 2 <= val <= 63:
             direction = f"  (CW x{val})"
         elif 65 <= val <= 126:
-            direction = f"  (CCW x{128-val})"
+            direction = f"  (CCW x{128 - val})"
         else:
             direction = ""
         return f"[{ts}] CC      | ch:{channel:>2} | cc:{msg.control:>3}  | val:{val:>3}{direction}"
@@ -207,7 +207,13 @@ def main() -> None:
 
                 elif msg.type == "control_change":
                     last_channel = msg.channel
-                    cc_type = "cc_relative" if msg.value in (1, 127) or (2 <= msg.value <= 63) or (65 <= msg.value <= 126) else "cc_absolute"
+                    cc_type = (
+                        "cc_relative"
+                        if msg.value in (1, 127)
+                        or (2 <= msg.value <= 63)
+                        or (65 <= msg.value <= 126)
+                        else "cc_absolute"
+                    )
                     control = {
                         "type": cc_type,
                         "channel": msg.channel + 1,
@@ -215,11 +221,15 @@ def main() -> None:
                         "label": "unknown",
                     }
                     # Avoid duplicates
-                    if not any(c.get("cc") == msg.control and c.get("type") == cc_type for c in discovered):
+                    if not any(
+                        c.get("cc") == msg.control and c.get("type") == cc_type
+                        for c in discovered
+                    ):
                         discovered.append(control)
 
             # Check for keyboard commands
             import msvcrt
+
             if msvcrt.kbhit():
                 key = msvcrt.getch().decode("utf-8", errors="ignore").upper()
 
@@ -249,7 +259,9 @@ def main() -> None:
         # Ask to save on exit
         if discovered:
             print(f"\nDiscovered {len(discovered)} controls.")
-            save_choice = input("Save to k2_discovered_controls.json? [y/n]: ").strip().lower()
+            save_choice = (
+                input("Save to k2_discovered_controls.json? [y/n]: ").strip().lower()
+            )
             if save_choice == "y":
                 save_controls(discovered, Path("k2_discovered_controls.json"))
 

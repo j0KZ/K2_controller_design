@@ -126,8 +126,13 @@ class MultiToggleAction(Action):
         delay_sec = delay_ms / 1000.0
 
         name = self.config.get("name", "multi_toggle")
-        logger.info("Multi-toggle %s: was=%s → now=%s (%d steps)",
-                    name, "ON" if current_state else "OFF", state_name, len(sequence))
+        logger.info(
+            "Multi-toggle %s: was=%s → now=%s (%d steps)",
+            name,
+            "ON" if current_state else "OFF",
+            state_name,
+            len(sequence),
+        )
 
         # IMPORTANT: Release all modifiers first to prevent stuck keys
         keyboard.release_all_modifiers()
