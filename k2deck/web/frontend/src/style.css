@@ -13,6 +13,14 @@
   @apply ring-2 ring-k2-accent ring-offset-2 ring-offset-k2-bg;
 }
 
+/* Drag and drop */
+.drop-target-active {
+  @apply ring-2 ring-k2-success ring-offset-2 ring-offset-k2-bg;
+}
+.drag-source-active {
+  @apply opacity-40;
+}
+
 /* LED glow */
 .led-glow { box-shadow: 0 0 8px 2px currentColor; }
 

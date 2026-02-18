@@ -11,9 +11,7 @@
       <!-- Right: Config Panel -->
       <div class="flex-1 overflow-y-auto">
         <ControlConfig v-if="ui.selectedControl" />
-        <div v-else class="h-full flex items-center justify-center text-k2-text-secondary">
-          <p>Selecciona un control para configurar</p>
-        </div>
+        <ActionCatalog v-else />
       </div>
     </main>
 
@@ -32,6 +30,7 @@ import { useKeyboard } from '@/composables/useKeyboard'
 import AppHeader from '@/components/header/AppHeader.vue'
 import K2Grid from '@/components/layout/K2Grid.vue'
 import ControlConfig from '@/components/config/ControlConfig.vue'
+import ActionCatalog from '@/components/config/ActionCatalog.vue'
 import MidiMonitor from '@/components/monitor/MidiMonitor.vue'
 import ToastContainer from '@/components/common/ToastContainer.vue'
 

@@ -1,14 +1,36 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { setActivePinia, createPinia } from 'pinia'
+
+// Mock useDragDrop before importing component
+const mockDragDrop = {
+  isDragOver: vi.fn().mockReturnValue(false),
+  isSourceControl: vi.fn().mockReturnValue(false),
+  onControlDragStart: vi.fn(),
+  onDragEnd: vi.fn(),
+  onDragOver: vi.fn(),
+  onDragEnter: vi.fn(),
+  onDragLeave: vi.fn(),
+  onDrop: vi.fn(),
+  state: { isDragging: false },
+  resetDragState: vi.fn(),
+}
+vi.mock('@/composables/useDragDrop', () => ({
+  useDragDrop: () => mockDragDrop,
+}))
+
 import K2Control from './K2Control.vue'
 import { useUi } from '@/stores/ui'
 import { useK2State } from '@/stores/k2State'
 import { useAnalogState } from '@/stores/analogState'
+import { useConfig } from '@/stores/config'
 
 describe('K2Control', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
+    vi.clearAllMocks()
+    mockDragDrop.isDragOver.mockReturnValue(false)
+    mockDragDrop.isSourceControl.mockReturnValue(false)
   })
 
   it('should render a button control by default', () => {
@@ -136,5 +158,89 @@ describe('K2Control', () => {
 
     // Button without CC should not show analog value
     expect(wrapper.find('.k2-button').exists()).toBe(true)
+  })
+
+  // --- Drag and Drop ---
+
+  describe('drag and drop', () => {
+    it('sets draggable true when control has mapping', () => {
+      const config = useConfig()
+      config.config = {
+        mappings: { note_on: { 36: { name: 'HK', action: 'hotkey' } } },
+      }
+
+      const wrapper = mount(K2Control, {
+        props: {
+          control: { id: 'A1', type: 'button', note: 36, hasLed: false },
+          rowType: 'button',
+        },
+      })
+
+      expect(wrapper.find('.k2-control').attributes('draggable')).toBe('true')
+    })
+
+    it('sets draggable false when control has no mapping', () => {
+      const config = useConfig()
+      config.config = { mappings: {} }
+
+      const wrapper = mount(K2Control, {
+        props: {
+          control: { id: 'A1', type: 'button', note: 36, hasLed: false },
+          rowType: 'button',
+        },
+      })
+
+      expect(wrapper.find('.k2-control').attributes('draggable')).toBe('false')
+    })
+
+    it('applies drop-target-active class during dragover', () => {
+      mockDragDrop.isDragOver.mockReturnValue(true)
+
+      const wrapper = mount(K2Control, {
+        props: {
+          control: { id: 'A1', type: 'button', hasLed: false },
+          rowType: 'button',
+        },
+      })
+
+      expect(wrapper.find('.drop-target-active').exists()).toBe(true)
+    })
+
+    it('applies drag-source-active class when being dragged', () => {
+      mockDragDrop.isSourceControl.mockReturnValue(true)
+
+      const wrapper = mount(K2Control, {
+        props: {
+          control: { id: 'A1', type: 'button', hasLed: false },
+          rowType: 'button',
+        },
+      })
+
+      expect(wrapper.find('.drag-source-active').exists()).toBe(true)
+    })
+
+    it('click still works alongside draggable', async () => {
+      const config = useConfig()
+      config.config = {
+        mappings: { note_on: { 36: { name: 'HK', action: 'hotkey' } } },
+      }
+
+      const wrapper = mount(K2Control, {
+        props: {
+          control: { id: 'A1', type: 'button', note: 36, hasLed: false },
+          rowType: 'button',
+        },
+      })
+
+      const ui = useUi()
+      await wrapper.find('.k2-control').trigger('click')
+
+      expect(ui.selectedControl).toEqual({
+        id: 'A1',
+        type: 'button',
+        note: 36,
+        hasLed: false,
+      })
+    })
   })
 })

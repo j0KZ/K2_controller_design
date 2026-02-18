@@ -54,6 +54,13 @@ export const useConfig = defineStore('config', {
       this.dirty = true
     },
 
+    deleteMapping(type, key) {
+      if (this.config?.mappings?.[type]) {
+        delete this.config.mappings[type][String(key)]
+        this.dirty = true
+      }
+    },
+
     async saveConfig() {
       const api = useApi()
       this.loading = true

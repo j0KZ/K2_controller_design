@@ -4,8 +4,17 @@
     :class="[
       isSelected && 'control-selected',
       'hover:bg-k2-surface-hover',
+      dragDrop.isDragOver(control.id) && 'drop-target-active',
+      dragDrop.isSourceControl(control.id) && 'drag-source-active',
     ]"
+    :draggable="!!mapping"
     @click="handleClick"
+    @dragstart="dragDrop.onControlDragStart($event, control)"
+    @dragend="dragDrop.onDragEnd()"
+    @dragover="dragDrop.onDragOver($event, control)"
+    @dragenter="dragDrop.onDragEnter($event, control)"
+    @dragleave="dragDrop.onDragLeave($event, control)"
+    @drop="dragDrop.onDrop($event, control)"
   >
     <component
       :is="controlComponent"
@@ -23,6 +32,7 @@ import { useUi } from '@/stores/ui'
 import { useK2State } from '@/stores/k2State'
 import { useAnalogState } from '@/stores/analogState'
 import { useConfig } from '@/stores/config'
+import { useDragDrop } from '@/composables/useDragDrop'
 import K2Button from './K2Button.vue'
 import K2Encoder from './K2Encoder.vue'
 import K2Pot from './K2Pot.vue'
@@ -37,6 +47,7 @@ const ui = useUi()
 const k2State = useK2State()
 const analogState = useAnalogState()
 const config = useConfig()
+const dragDrop = useDragDrop()
 
 const controlComponent = computed(() => {
   switch (props.control.type) {

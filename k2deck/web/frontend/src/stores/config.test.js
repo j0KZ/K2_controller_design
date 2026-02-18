@@ -149,4 +149,26 @@ describe('useConfig store', () => {
     config.dirty = true
     expect(config.hasUnsavedChanges).toBe(true)
   })
+
+  it('should delete mapping and set dirty', () => {
+    const config = useConfig()
+    config.config = {
+      mappings: {
+        note_on: { 36: { name: 'Test', action: 'hotkey' } },
+      },
+    }
+
+    config.deleteMapping('note_on', 36)
+
+    expect(config.config.mappings.note_on[36]).toBeUndefined()
+    expect(config.dirty).toBe(true)
+  })
+
+  it('should not throw when deleting non-existent mapping', () => {
+    const config = useConfig()
+    config.config = { mappings: {} }
+
+    expect(() => config.deleteMapping('note_on', 999)).not.toThrow()
+    expect(() => config.deleteMapping('nonexistent', 1)).not.toThrow()
+  })
 })
